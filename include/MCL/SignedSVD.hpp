@@ -42,15 +42,11 @@ static inline void signed_svd(
 	}
 
 	// Degenerate case
-	for(int i=0; i<dim; ++i)
+	if (!S.allFinite())
 	{
-		if (!std::isfinite(S[i]))
-		{
-			S.setZero();
-			U.setIdentity();
-			V.setIdentity();
-			break;
-		}
+		S.setZero();
+		U.setIdentity();
+		V.setIdentity();
 	}
 
 } // end signed svd
