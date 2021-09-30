@@ -44,7 +44,7 @@ namespace mcl
 
 class ArgParser
 {
-private:
+protected:
 	std::unordered_map<std::string, std::string> args;
 
 public:

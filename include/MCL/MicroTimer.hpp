@@ -11,6 +11,7 @@ namespace mcl
 
 class MicroTimer
 {
+protected:
 	//typedef std::chrono::high_resolution_clock C;
 	typedef std::chrono::steady_clock C;
 	typedef double T;
