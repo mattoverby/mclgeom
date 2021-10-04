@@ -21,9 +21,14 @@
 #ifndef MCL_DISJOINTSETS_HPP
 #define MCL_DISJOINTSETS_HPP 1
 
+// Edits by Matt Overby: added mcl namespace
+
 #include <vector>
 #include <atomic>
 #include <iostream>
+
+namespace mcl
+{
 
 /**
  * Lock-free parallel disjoint set data structure (aka UNION-FIND)
@@ -176,5 +181,7 @@ public:
 
     mutable std::vector<std::atomic<uint64_t>> mData;
 };
+
+} // ns mcl
 
 #endif
