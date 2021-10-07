@@ -44,9 +44,6 @@ namespace mcl
 
 class ArgParser
 {
-protected:
-	std::unordered_map<std::string, std::string> args;
-
 public:
 	ArgParser(const int &argc, char** argv)
 	{
@@ -79,6 +76,9 @@ public:
 		}
 		return false;
 	} // end getter to reference
+
+protected:
+	std::unordered_map<std::string, std::string> args;
 };
 
 

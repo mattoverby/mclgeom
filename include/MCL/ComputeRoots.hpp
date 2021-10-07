@@ -84,7 +84,7 @@ static inline double compute_quad_roots_2(double a, double b, double c)
 static inline double compute_cubic_roots(double a, double b, double c, double d, double tol=1e-16)
 {
 	double t = -1;
-	if(std::abs(a) <= tol){ t = get_quad_roots(b, c, d, tol); }
+	if(std::abs(a) <= tol){ t = compute_quad_roots(b, c, d, tol); }
 	else {
 		std::complex<double> i(0, 1);
 		std::complex<double> delta0(b*b - 3 * a*c, 0);
@@ -129,7 +129,7 @@ static inline double compute_min_pos_root_2D(const Eigen::MatrixXd& x, const Eig
 	double a = V11*V22 - V12*V21 - V11*V32 + V12*V31 + V21*V32 - V22*V31;
 	double b = U11*V22 - U12*V21 - U21*V12 + U22*V11 - U11*V32 + U12*V31 + U31*V12 - U32*V11 + U21*V32 - U22*V31 - U31*V22 + U32*V21;
 	double c = U11*U22 - U12*U21 - U11*U32 + U12*U31 + U21*U32 - U22*U31;
-  double root = get_quad_roots_2(a,b,c);
+  double root = compute_quad_roots_2(a,b,c);
   if (root < 0) { return std::numeric_limits<float>::max(); }
   return root;
 }

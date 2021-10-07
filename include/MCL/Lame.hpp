@@ -9,14 +9,6 @@ namespace mcl
 
 class Lame
 {
-protected:
-	// Hard strain limiting (e.g. [0.95,1.05]), default no limit
-	// with  min: -inf to 1, max: 1 to inf.
-	// In practice if max>99 it's basically no limiting.
-	double m_limit_min, m_limit_max;
-	double m_youngs, m_poisson, m_mu, m_lambda, m_bulk_mod;
-	int m_model; // placeholder
-
 public:
 
 	// Static presets
@@ -77,6 +69,14 @@ public:
 		m_limit_min=min;
 		m_limit_max=max;
 	}
+
+protected:
+	// Hard strain limiting (e.g. [0.95,1.05]), default no limit
+	// with  min: -inf to 1, max: 1 to inf.
+	// In practice if max>99 it's basically no limiting.
+	double m_limit_min, m_limit_max;
+	double m_youngs, m_poisson, m_mu, m_lambda, m_bulk_mod;
+	int m_model; // placeholder
 };
 
 

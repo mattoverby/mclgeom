@@ -13,26 +13,28 @@ namespace mcl
 //	Uniform Cone
 //
 // u1, u2: 0 to 1
-static inline void sample_uniform_cone(float u1, float u2, float max_theta, float *vec_3f)
+template<typename T>
+static inline void sample_uniform_cone(T u1, T u2, T max_theta, T *vec_3)
 {
-  float cos_theta = (1.f - u1) + u1 * cos(max_theta);
-  float sin_theta = sqrtf(1.f - cos_theta*cos_theta);
-  float phi = u2 * 2.f * M_PI;
-  vec_3f[0]=cosf(phi)*sin_theta;
-  vec_3f[1]=sinf(phi)*sin_theta;
-  vec_3f[2]=cos_theta;
+  T cos_theta = (T(1) - u1) + u1 * std::cos(max_theta);
+  T sin_theta = std::sqrt(1 - cos_theta*cos_theta);
+  T phi = u2 * 2 * M_PI;
+  vec_3[0]=std::cos(phi)*sin_theta;
+  vec_3[1]=std::sin(phi)*sin_theta;
+  vec_3[2]=cos_theta;
 }
 
 //
 //	Cosine Hemisphere
 //
-static inline void sample_cosine_hemisphere(float u1, float u2, float *vec_3f)
+template<typename T>
+static inline void sample_cosine_hemisphere(T u1, T u2, T *vec_3)
 {
-  float r = sqrt( u1 );
-  float theta = 2.f * M_PI * u2;
-  vec_3f[0] = r * cosf(theta);
-  vec_3f[1] = r * sinf(theta);
-  vec_3f[2] = sqrt( fmaxf(0.f, 1.f-u1) );
+  T r = std::sqrt(u1);
+  T theta = 2 * M_PI * u2;
+  vec_3[0] = r * std::cos(theta);
+  vec_3[1] = r * std::sin(theta);
+  vec_3[2] = std::sqrt(std::max(T(0), 1-u1));
 }
 
 } // end namespace mcl
