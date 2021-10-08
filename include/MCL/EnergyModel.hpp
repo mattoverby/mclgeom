@@ -141,9 +141,6 @@ void XuSplineModel<DIM>::hessian(const XuSpline<double> *s, const VecD &x, MatD 
 	H(1,0) = H(0,1);
 }
 
-template class mcl::XuSplineModel<2>;
-template class mcl::XuSplineModel<3>;
-
 //================================================
 //	Stable Neo-Hookean
 //================================================
@@ -201,9 +198,6 @@ void StableNeoHookean<DIM>::hessian(const Lame &lame, const VecD &x, MatD &hess)
 	hess(1,0) = hess(0,1);
 }
 
-template class mcl::StableNeoHookean<2>;
-template class mcl::StableNeoHookean<3>;
-
 //================================================
 //	Isotropic Neo-Hookean
 //================================================
@@ -249,9 +243,6 @@ void IsoNeoHookean<DIM>::hessian(const Lame &lame, const VecD &x, MatD &hess)
 		lame.lambda() * x_inv * x_inv.transpose();
 }
 
-template class mcl::IsoNeoHookean<2>;
-template class mcl::IsoNeoHookean<3>;
-
 //================================================
 //	Symmetric Dirichlet
 //================================================
@@ -287,9 +278,6 @@ void SymmDirichlet<DIM>::hessian(const VecD &x, MatD &H)
 	for(int i=0; i<DIM; ++i)
 		H(i,i) = 2.0 + 6.0 * std::pow(x[i],-4.0);
 }
-
-template class mcl::SymmDirichlet<2>;
-template class mcl::SymmDirichlet<3>;
 
 } // end namespace mcl
 
