@@ -175,9 +175,9 @@ Eigen::Matrix<T,3,1> point_on_plane(const Eigen::Matrix<T,3,1> &point, const Eig
 template <typename T>
 static Eigen::Matrix<T,2,1> point_on_edge(const Eigen::Matrix<T,2,1> &p, const Eigen::Matrix<T,2,1> &e0, const Eigen::Matrix<T,2,1> &e1)
 {
-	Eigen::Matrix<T,2,1> e = (e0-e1);
+	Eigen::Matrix<T,2,1> e = (e1-e0);
 	T e_len2 = e.dot(e);
-	if(e_len2 <= 0.0) { return e0; }
+	if(e_len2 <= 0.0) { return e0; } // zero length edge
 	Eigen::Matrix<T,2,1> pe0 = (p-e0);
 	T t = pe0.dot(e)/e_len2;
 	if (t < 0.0){ return e0; }
