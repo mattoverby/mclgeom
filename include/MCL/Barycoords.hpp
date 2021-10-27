@@ -19,6 +19,10 @@ static inline Eigen::Matrix<T,2,1> point_edge_barys(
 	Eigen::Matrix<T,DIM,1> v0 = p1 - p0;
 	Eigen::Matrix<T,DIM,1> v2 = p - p0;
 	T d00 = v0.dot(v0);
+	if (d00 <= T(0))
+	{
+		return Eigen::Matrix<T,2,1>(-1,0);
+	}
 	T d20 = v2.dot(v0);
 	T invDenom = 1.0 / d00;
 	Eigen::Matrix<T,2,1> r;
