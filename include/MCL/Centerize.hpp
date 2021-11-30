@@ -19,7 +19,6 @@ static inline void centerize(Eigen::MatrixBase<DerivedV> &V)
 	for (int i=0; i<cols; ++i)
 	{
 		typename DerivedV::Scalar ci = V.col(i).mean();
-		std::cout << ci << std::endl;
 		V.col(i).array() -= ci;
 	}
 } // end centerize
