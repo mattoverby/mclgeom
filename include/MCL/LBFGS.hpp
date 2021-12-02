@@ -77,10 +77,9 @@ public:
 	std::function<Scalar(MatrixType&, MatrixType&, const MatrixType&, Scalar&)> linesearch;
 
 	// Optional:
-	// Precondition descent direction, p = B(p)
-	// Useful if you have a good Hessian approximation.
+	// Filter descent direction, p = B(p)
 	// Otherwise p = gamma_k * p is used.
-	std::function<void(MatrixType&)> precondition;
+	std::function<void(MatrixType&)> filter;
 
 	// The actual minimize
 	Scalar minimize(MatrixType& x);
@@ -220,7 +219,7 @@ LBFGS<MatrixType>::minimize(MatrixType &x)
 				q -= alpha(i) * y[i];
 			}
 
-			if (precondition != nullptr) { precondition(q); }
+			if (filter != nullptr) { filter(q); }
 			else { q = gamma_k*q; }
 
 			// L-BFGS second - loop recursion
