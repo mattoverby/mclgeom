@@ -44,10 +44,7 @@ public:
 			{}
 	} options;
 
-	LBFGS() :
-		num_iters(0),
-		gamma_k(1)
-		{}
+	LBFGS();
 
     // Output from the last call to minimize(...)
 	int iters() const { return num_iters; }
@@ -82,15 +79,22 @@ public:
 	// Otherwise p = gamma_k * p is used.
 	std::function<void(MatrixType&)> precondition;
 
-	// The actual minimize
+	// Calls initialize(x) once and iterate(x) until converged
 	Scalar minimize(MatrixType& x);
+
+	// Initialize the solver
+	void initialize(MatrixType& x);
+
+	// Take an iteration
+	// Returns objective
+	Scalar iterate(MatrixType& x);
 
 	// i.e. bisection with weak Wolfe conditions
 	Scalar bracketing_weakwolfe(
 		MatrixType& x,
 		MatrixType& grad,
 		const MatrixType& p,
-		Scalar &alpha);
+		Scalar &alpha) const;
 
 	// Used if converged not set
 	// Returns true if:
@@ -98,18 +102,19 @@ public:
 	// or
 	// grad.norm() <= rel_tol * x.norm()
 	bool default_converged(
-		Scalar obj_k,
+		Scalar curr_obj,
 		const MatrixType& xprev,
 		const MatrixType& x,
-		const MatrixType& grad);
+		const MatrixType& grad) const;
 
     Scalar inner(
         const MatrixType &a,
         const MatrixType &b) const;
 
 protected:
-	int num_iters;
-	Scalar gamma_k;
+	bool initialized;
+	int num_iters, max_iters, k;
+	Scalar gamma_k, obj_0, obj_k;
 	std::vector<MatrixType> s;
 	std::vector<MatrixType> y;
 	Eigen::Matrix<Scalar,Eigen::Dynamic,1> alpha;
@@ -130,9 +135,26 @@ protected:
 //
 
 template <typename MatrixType>
+LBFGS<MatrixType>::LBFGS() :
+	initialized(false),
+	num_iters(0),
+	max_iters(0),
+	k(0),
+	gamma_k(1),
+	obj_0(0),
+	obj_k(0)
+	{}
+
+template <typename MatrixType>
 void LBFGS<MatrixType>::reset(int rows, int cols)
 {
     using namespace Eigen;
+	num_iters = 0;
+	max_iters = 0;
+	k = 0;
+	gamma_k = 1;
+	obj_0 = std::numeric_limits<Scalar>::max();
+	obj_k = std::numeric_limits<Scalar>::max();
 	int M = options.M;
 	s = std::vector<MatrixType>(M, MatrixType::Zero(rows,cols));
 	y = std::vector<MatrixType>(M, MatrixType::Zero(rows,cols));
@@ -153,7 +175,29 @@ template <typename MatrixType>
 typename LBFGS<MatrixType>::Scalar
 LBFGS<MatrixType>::minimize(MatrixType &x)
 {
-    using namespace Eigen;
+	initialize(x);
+
+	// Did we start at the initializer?
+	if (num_iters >= options.min_iters &&
+		converged(obj_k,x_last,x,grad))
+	{
+		num_iters = 1;
+		return obj_k;
+	}
+
+	for (; k<max_iters; ++k)
+	{
+		iterate(x);
+	} // end loop lbfgs iters
+
+	return obj_k;
+
+} // end minimize
+
+template <typename MatrixType>
+void LBFGS<MatrixType>::initialize(MatrixType& x)
+{
+	initialized = true;
 
 	if (gradient == nullptr) {
 	    throw std::runtime_error("no gradient function");
@@ -179,123 +223,119 @@ LBFGS<MatrixType>::minimize(MatrixType &x)
 	}
 
 	num_iters = 0;
+	max_iters = std::max(options.min_iters, options.max_iters);
 	gamma_k = options.gamma;
-	Scalar obj_0 = gradient(x, grad);
-	Scalar obj_k = obj_0;
+	obj_0 = gradient(x, grad);
+	obj_k = obj_0;
+	k = 0;
+}
 
-	// Did we start at the initializer?
-	if (num_iters >= options.min_iters &&
-		converged(obj_k,x_last,x,grad))
-	{
-		num_iters = 1;
-		return obj_k;
+template <typename MatrixType>
+typename LBFGS<MatrixType>::Scalar
+LBFGS<MatrixType>::iterate(MatrixType& x)
+{
+	if (!initialized) {
+		throw std::runtime_error("not initialized");
 	}
 
-	Scalar step_size = 1.0;
-	int max_iters = std::max(options.min_iters, options.max_iters);
-	for (int k=0; k<max_iters; ++k)
+	x_old = x;
+	grad_old = grad;
+	q = grad;
+	num_iters++;
+
+	//
+	// Two-loop recursion
+	//
 	{
-		x_old = x;
-		grad_old = grad;
-		q = grad;
-		num_iters++;
-
-		//
-		// Two-loop recursion
-		//
+		// L-BFGS first - loop recursion		
+		int iter = std::min(options.M, k);
+		for(int i = iter - 1; i >= 0; --i)
 		{
-			// L-BFGS first - loop recursion		
-			int iter = std::min(options.M, k);
-			for(int i = iter - 1; i >= 0; --i)
+			Scalar denom = inner(s[i], y[i]);
+			if (std::abs(denom) <= 0.0)
 			{
-				Scalar denom = inner(s[i], y[i]);
-				if (std::abs(denom) <= 0.0)
-				{
-					rho(i) = 0;
-					alpha(i) = 0;
-					continue;
-				}
-				rho(i) = 1.0 / denom;
-				alpha(i) = rho(i)*inner(s[i], q);
-				q -= alpha(i) * y[i];
+				rho(i) = 0;
+				alpha(i) = 0;
+				continue;
 			}
-
-			if (precondition != nullptr) { precondition(q); }
-			else { q = gamma_k*q; }
-
-			// L-BFGS second - loop recursion
-			for(int i = 0; i < iter; ++i)
-			{
-				Scalar beta = rho(i)*inner(q, y[i]);
-				q += (alpha(i) - beta)*s[i];
-			}
+			rho(i) = 1.0 / denom;
+			alpha(i) = rho(i)*inner(s[i], q);
+			q -= alpha(i) * y[i];
 		}
 
-		//
-		// Perform step
-		//
+		if (precondition != nullptr) { precondition(q); }
+		else { q = gamma_k*q; }
+
+		// L-BFGS second - loop recursion
+		for(int i = 0; i < iter; ++i)
 		{
-			// If our hess approx is bad and we start going in
-			// the wrong direction, restart memory
-			Scalar dir = inner(q, grad);
-			if (dir <= 0)
-			{
-				q = grad;
-				max_iters -= k; // Restart memory
-				k = 0;
-				step_size = std::min(1.0, 1.0 / grad.template lpNorm<Eigen::Infinity>() );
-			}
+			Scalar beta = rho(i)*inner(q, y[i]);
+			q += (alpha(i) - beta)*s[i];
+		}
+	}
 
-			// We've hit local minima, we have to exit
-			if (q.squaredNorm() <= 0.0) {
-			    return obj_k;
-			}
-
-			descent = -q;
-			x_last = x;
-			obj_k = linesearch(x, grad, descent, step_size);
-			if (num_iters >= options.min_iters && converged(obj_k,x_last,x,grad)) {
-			    return obj_k;
-			}
+	//
+	// Perform step
+	//
+	{
+		// If our hess approx is bad and we start going in
+		// the wrong direction, restart memory
+		Scalar step_size = 1.0;
+		Scalar dir = inner(q, grad);
+		if (dir <= 0)
+		{
+			q = grad;
+			max_iters -= k; // Restart memory
+			k = 0;
+			step_size = std::min(1.0, 1.0 / grad.template lpNorm<Eigen::Infinity>() );
 		}
 
-		//
-		// Correction term
-		//
-		{
-			s_temp = x - x_old;
-			y_temp = grad - grad_old;
-
-			// update the history
-			if (k < options.M)
-			{
-				s[k] = s_temp;
-				y[k] = y_temp;
-			}
-			else
-			{
-				for (int i=0; i<options.M - 1; ++i)
-				{
-					s[i] = s[i+1];
-					y[i] = y[i+1];
-				}
-				s.back() = s_temp;
-				y.back() = y_temp;
-			}
-
-			Scalar denom = inner(y_temp, y_temp);
-			if (std::abs(denom) > 0.0)
-			{
-				gamma_k = inner(s_temp, y_temp) / denom;
-			}
-			step_size = 1.0;
+		// We've hit local minima, we have to exit
+		if (q.squaredNorm() <= 0.0) {
+			return obj_k;
 		}
 
-	} // end loop lbfgs iters
+		descent = -q;
+		x_last = x;
+		obj_k = linesearch(x, grad, descent, step_size);
+		if (num_iters >= options.min_iters && converged(obj_k,x_last,x,grad)) {
+			return obj_k;
+		}
+	}
+
+	//
+	// Correction term
+	//
+	{
+		s_temp = x - x_old;
+		y_temp = grad - grad_old;
+
+		// update the history
+		if (k < options.M)
+		{
+			s[k] = s_temp;
+			y[k] = y_temp;
+		}
+		else
+		{
+			for (int i=0; i<options.M - 1; ++i)
+			{
+				s[i] = s[i+1];
+				y[i] = y[i+1];
+			}
+			s.back() = s_temp;
+			y.back() = y_temp;
+		}
+
+		Scalar denom = inner(y_temp, y_temp);
+		if (std::abs(denom) > 0.0)
+		{
+			gamma_k = inner(s_temp, y_temp) / denom;
+		}
+	}
 
 	return obj_k;
-
-} // end minimize
+}
 
 template <typename MatrixType>
 typename LBFGS<MatrixType>::Scalar
@@ -303,7 +343,7 @@ LBFGS<MatrixType>::bracketing_weakwolfe(
 		MatrixType& x,
 		MatrixType& g,
 		const MatrixType &drt,
-		Scalar &step)
+		Scalar &step) const
 {
     using namespace Eigen;
 
@@ -351,13 +391,13 @@ LBFGS<MatrixType>::bracketing_weakwolfe(
 
 template <typename MatrixType>
 bool LBFGS<MatrixType>::default_converged(
-		Scalar obj_k,
+		Scalar curr_obj,
 		const MatrixType& xprev,
 		const MatrixType& x,
-		const MatrixType& g)
+		const MatrixType& g) const
 {
+	(void)(curr_obj);
 	(void)(xprev);
-	(void)(obj_k);
 	Scalar gnorm = g.norm();
 	if (gnorm <= options.abs_tol) {
 	    return true;
