@@ -11,6 +11,7 @@ option(MCL_GEOM_BUILD_TESTS "Compile tests" OFF)
 
 if (MCL_GEOM_BUILD_TESTS)
 
+    set(CMAKE_BUILD_TYPE Release)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
     option(LIBIGL_WITH_OPENGL            "Use OpenGL"         ON)
     option(LIBIGL_WITH_OPENGL_GLFW       "Use GLFW"           ON)
