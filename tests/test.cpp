@@ -5,17 +5,18 @@
 #include "MCL/AssertHandler.hpp"
 #include "MCL/Projection.hpp"
 #include "MCL/Barycoords.hpp"
+#include "MCL/ArgParser.hpp"
 
 using namespace Eigen;
 
 void test_projection_barys();
+void test_argparser(int argc, char *argv[]);
 
 // Should probably replace with actual unit testing through CTest
 int main(int argc, char *argv[])
 {
-    (void)(argc);
-    (void)(argv);
     test_projection_barys();
+    test_argparser(argc, argv);
     return EXIT_SUCCESS;
 }
 
@@ -32,4 +33,10 @@ void test_projection_barys()
     mclAssert(barys.maxCoeff() > 1);
     mclAssert(proj_barys.maxCoeff() < 1);
     std::cout << barys.transpose() << " " << proj_barys.transpose() << std::endl;
+}
+
+void test_argparser(int argc, char *argv[])
+{
+    mcl::ArgParser args(argc, argv);
+    args.save_to_file("args.txt");
 }

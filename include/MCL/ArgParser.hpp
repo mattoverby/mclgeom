@@ -7,6 +7,7 @@
 #include <sstream>
 #include <string>
 #include <unordered_map>
+#include <fstream>
 
 //
 // mcl::ArgParser does simple space-delimited argument parsing
@@ -47,8 +48,20 @@ class ArgParser
 public:
 	ArgParser(const int &argc, char** argv)
 	{
-		for (int i=1; i<argc-1; ++i) { args[ argv[i] ] = argv[i+1]; }
-		if (argc>1) { args[ argv[argc-1] ] = "0"; }
+		if (argc < 1) { return; }
+		std::stringstream ss_full;
+		ss_full << argv[0];
+		for (int i=1; i<argc-1; ++i)
+		{
+			args[argv[i]] = argv[i+1];
+			ss_full << ' ' << argv[i];
+		}
+		if (argc>1)
+		{
+			args[argv[argc-1]] = "0";
+			ss_full << ' ' << argv[argc-1];
+		}
+		full = ss_full.str();
 	}
 
 	// Return whether or not an argument exists
@@ -77,8 +90,17 @@ public:
 		return false;
 	} // end getter to reference
 
+	void save_to_file(const std::string &fn) const
+	{
+		std::ofstream ofout(fn.c_str());
+		if (!ofout.good()) { return; }
+		ofout << full;
+		ofout.close();
+	}
+
 protected:
 	std::unordered_map<std::string, std::string> args;
+	std::string full;
 };
 
 
