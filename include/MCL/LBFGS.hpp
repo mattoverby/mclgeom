@@ -46,7 +46,7 @@ public:
 
 	LBFGS();
 
-    // Output from the last call to minimize(...)
+	// Output from the last call to minimize(...)
 	int iters() const { return num_iters; }
 	Scalar gamma() const { return gamma_k; }
 
@@ -106,9 +106,9 @@ public:
 		const MatrixType& x,
 		const MatrixType& grad) const;
 
-    Scalar inner(
-        const MatrixType &a,
-        const MatrixType &b) const;
+	Scalar inner(
+		const MatrixType &a,
+		const MatrixType &b) const;
 
 protected:
 	bool initialized;
