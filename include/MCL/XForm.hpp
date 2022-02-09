@@ -9,15 +9,68 @@
 namespace mcl
 {
 
-template <typename T, int dim=3>
-class XForm : public Eigen::Transform<T,dim,Eigen::Affine>
+template <typename T>
+class XForm
 {
+protected:
+	Eigen::Matrix<T,4,4> data;
+
 public:
 	template <typename U> using Vec3 = Eigen::Matrix<U,3,1>;
-	using VecD = Eigen::Matrix<T,dim,1>;
 
-	XForm() { this->setIdentity(); }
-	XForm(const Eigen::Transform<T,dim,Eigen::Affine> &xf) { *this = xf; }
+	XForm()
+	{
+		setIdentity();
+	}
+
+	template <typename U>
+	XForm(const XForm<U> &xf)
+	{
+		data = xf.data.template cast<T>();
+	}
+
+	const Eigen::Matrix<T,4,4>& matrix() const
+	{
+		return data;
+	}
+
+	Eigen::Matrix<T,4,4>& matrix()
+	{
+		return data;
+	}
+
+	T operator()(int i, int j) const
+	{
+		return data(i,j);
+	}
+
+	T& operator()(int i, int j)
+	{
+		return data(i,j);
+	}
+
+	Vec3<T> operator*(const Vec3<T> &v)
+	{
+		return (Eigen::Transform<T,3,Eigen::Affine>(data) * v);
+	}
+
+	Eigen::Matrix<T,2,1> operator*(const Eigen::Matrix<T,2,1> &v)
+	{
+		Vec3<T> v3(v[0], v[1], 0);
+		v3 = Eigen::Transform<T,3,Eigen::Affine>(data) * v3;
+		return Eigen::Matrix<T,2,1>(v3[0], v3[1]);
+	}
+
+	void setZero()
+	{
+		data.setZero();
+	}
+
+	void setIdentity()
+	{
+		data.setZero();
+		data.diagonal().array() = 1;
+	}
 
 	// Makes an identity matrix
 	static inline XForm<T> identity()
@@ -32,8 +85,11 @@ public:
 	static inline XForm<T> make_scale(T x, T y, T z)
 	{
 		XForm<T> r;
-		r.setIdentity();
-		r.data()[0] = x; r.data()[5] = y; r.data()[10] = z;
+		r.setZero();
+		r(0,0) = x;
+		r(1,1) = y;
+		r(2,2) = z;
+		r(3,3) = 1;
 		return r;
 	}
 
@@ -48,7 +104,10 @@ public:
 	{
 		XForm<T> r;
 		r.setIdentity();
-		r.data()[12] = x; r.data()[13] = y; r.data()[14] = z;
+		r(0,3) = x;
+		r(1,3) = y;
+		r(2,3) = z;
+		r(3,3) = z;
 		return r;
 	}
 
@@ -61,20 +120,14 @@ public:
 	// Usage: Xform<float> t = xform::make_rot(45.f, Vec3f(0,1,0));
 	static inline XForm<T> make_rotate(T angle_deg, const Vec3<T> &axis)
 	{
-		T rx = axis[0]; T ry = axis[1]; T rz = axis[2];
-		T l = sqrt(rx*rx + ry*ry + rz*rz);
-		T angle = angle_deg * M_PI / 180.0;
-		T l1 = 1.f/l, x = rx * l1, y = ry * l1, z = rz * l1;
-		T s = std::sin(angle), c = std::cos(angle);
-		T xs = x*s, ys = y*s, zs = z*s, c1 = 1.f-c;
-		T xx = c1*x*x, yy = c1*y*y, zz = c1*z*z;
-		T xy = c1*x*y, xz = c1*x*z, yz = c1*y*z;
-		T mat[16] = {xx+c,  xy+zs, xz-ys, 0,
-				xy-zs, yy+c,  yz+xs, 0,
-				xz+ys, yz-xs, zz+c,  0,
-				0, 0, 0, 1 };
+		T rad_deg = angle_deg * M_PI / 180.0;
+		Eigen::AngleAxis<T> rx(axis[0]*rad_deg, Eigen::Vector3d::UnitX());
+		Eigen::AngleAxis<T> ry(axis[1]*rad_deg, Eigen::Vector3d::UnitY());
+		Eigen::AngleAxis<T> rz(axis[2]*rad_deg, Eigen::Vector3d::UnitZ());
+		Eigen::Quaternion<T> q = rx * ry * rz;
 		XForm<T> r;
-		std::memcpy(r.data(), mat, 16*sizeof(T));
+		std::cout << q.matrix().rows() << std::endl;
+		r.data.template block<3,3>(0,0) = q.matrix();
 		return r;
 	}
 
@@ -113,7 +166,8 @@ public:
 		Vec3<T> v = w.cross(u);
 		XForm<T> r;
 		r.setIdentity();
-		for(size_t i=0; i<3; ++i){
+		for (int i=0; i<3; ++i)
+		{
 			r.data()[4*i] = u[i];
 			r.data()[4*i+1] = v[i];
 			r.data()[4*i+2] = w[i];
@@ -126,8 +180,7 @@ public:
 
 	// Makes a view matrix (from a lookat point)
 	// Usage: XForm<float> v = XForm::make_lookat(eye, Vec3f(0,0,0), Vec3f(0,1,0));
-	static inline XForm<T> make_lookat(
-		const Vec3<T> &eye, const Vec3<T> &point, const Vec3<T> &up)
+	static inline XForm<T> make_lookat(const Vec3<T> &eye, const Vec3<T> &point, const Vec3<T> &up)
 	{
 		Vec3<T> dir = point-eye;
 		return make_view(eye,dir,up);
@@ -141,20 +194,19 @@ public:
 		T cossinf = std::cos(fov/2.f) / std::sin(fov/2.f);
 		XForm<T> r;
 		r.setIdentity();
-		r.data()[0] = cossinf/aspect;
-		r.data()[5] = cossinf;
-		r.data()[10] = -(near+far)/(far-near);
-		r.data()[14] = -(2.f*near*far)/(far-near);
-		r.data()[11] = -1.f;
-		r.data()[15] = 0.f;
+		r(0,0) = cossinf/aspect;
+		r.data.data()[5] = cossinf;
+		r.data.data()[10] = -(near+far)/(far-near);
+		r.data.data()[14] = -(2.f*near*far)/(far-near);
+		r.data.data()[11] = -1.f;
+		r.data.data()[15] = 0.f;
 		return r;
 	}
 
 	static inline std::string to_string(const XForm<T> &xf)
 	{
 		std::stringstream ss;
-		ss << xf.data()[0];
-		for( int i=1; i<16; ++i ){ ss << ' ' << xf.data()[i]; }
+		ss << xf.data;
 		return ss.str();
 	}
 
@@ -162,33 +214,37 @@ public:
 	{
 		std::stringstream ss; ss << s;
 		XForm<T> result;
-		// TODO some testing to make sure there are tokens left
-		for( int i=0; i<16; ++i ){ ss >> result.data()[i]; }
+		ss >> result.data;
 		return result;
 	}
 
-	template<typename U>
-	void apply_row(Eigen::Matrix<U,Eigen::Dynamic,Eigen::Dynamic> &V, int row)
-	{
-		int cols = std::min(dim, (int)V.cols());
-		VecD vi = VecD::Zero();
-		for (int j=0; j<cols; ++j) { vi[j] = V(row,j); }
-		vi = (*this) * vi;
-		for (int j=0; j<cols; ++j) { V(row,j) = vi[j]; }
-	}
 
 	// Multiply every row (vertex) by the xform
-	template<typename U>
-	void apply(Eigen::Matrix<U,Eigen::Dynamic,Eigen::Dynamic> &V)
+	// Works for 2D or 3D (cols)
+	template <typename DerivedV>
+	void apply(Eigen::MatrixBase<DerivedV> &V)
 	{
 		int nv = V.rows();
-		int cols = std::min(dim, (int)V.cols());
+		int nc = V.cols();
+		Eigen::Transform<T,3,Eigen::Affine> r(data);
 		for (int i=0; i<nv; ++i)
 		{
-			apply_row(V, i);
+			Vec3<T> vi = Vec3<T>::Zero();
+			for (int j=0; j<nc; ++j) { vi[j] = V(i,j); }
+			vi = r * vi;
+			for (int j=0; j<nc; ++j) { V(i,j) = vi[j]; }
 		}
 	}
 };
+
+
+template <class T>
+static inline XForm<T> operator*(const XForm<T> &xf1, const XForm<T> &xf2)
+{
+	XForm<T> xf;
+	xf.matrix() = xf1.matrix() * xf2.matrix();
+	return xf;
+}
 
 } // ns mcl
 
