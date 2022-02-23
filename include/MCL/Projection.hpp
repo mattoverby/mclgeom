@@ -34,11 +34,25 @@ static inline Eigen::Matrix<T,2,1> point_on_edge(const Eigen::Matrix<T,2,1> &poi
 template <typename T>
 static inline Eigen::Matrix<T,3,1> point_on_edge(const Eigen::Matrix<T,3,1> &point, const Eigen::Matrix<T,3,1> &p1, const Eigen::Matrix<T,3,1> &p2);
 
+// Computes the shortest vector from p toward q, as well as
+// the barycentric coordinates of the closest points.
+// The distance between the segments is the norm of this vector.
+// Source: https://github.com/evouga/collisiondetection, license: public domain.
+template <typename T>
+static inline Eigen::Matrix<T,3,1> edge_to_edge(
+	const Eigen::Matrix<T,3,1> &p0,
+	const Eigen::Matrix<T,3,1> &p1,
+	const Eigen::Matrix<T,3,1> &q0,
+	const Eigen::Matrix<T,3,1> &q1,
+	Eigen::Matrix<T,4,1> &bary);
+
+
 //
 //	Implementation
 //
 
-// I do not know the source of the function but have seen it around in various libs
+// I do not know the source of the function.
+// If anyone knows, please tell me!
 template <typename T>
 Eigen::Matrix<T,3,1> point_on_triangle(const Eigen::Matrix<T,3,1> &point, const Eigen::Matrix<T,3,1> &p1, const Eigen::Matrix<T,3,1> &p2, const Eigen::Matrix<T,3,1> &p3)
 {
@@ -191,7 +205,7 @@ template <typename T>
 static Eigen::Matrix<T,3,1> point_on_edge(const Eigen::Matrix<T,3,1> &point, const Eigen::Matrix<T,3,1> &p1, const Eigen::Matrix<T,3,1> &p2)
 {
 	Eigen::Matrix<T,3,1> ab = p2-p1;
-	double t = ab.dot(point-p1);
+	T t = ab.dot(point-p1);
 	Eigen::Matrix<T,3,1> d = point; // result
 
 	// c projects outside the [a,b] interval, on the a side; clamp to a
@@ -219,7 +233,70 @@ static Eigen::Matrix<T,3,1> point_on_edge(const Eigen::Matrix<T,3,1> &point, con
 	return d;
 }
 
+
+template <typename T>
+static Eigen::Matrix<T,3,1> edge_to_edge(
+    const Eigen::Matrix<T,3,1> &p0,
+    const Eigen::Matrix<T,3,1> &p1,
+    const Eigen::Matrix<T,3,1> &q0,
+    const Eigen::Matrix<T,3,1> &q1,
+    Eigen::Matrix<T,4,1> &bary)
+{
+	typedef Eigen::Matrix<T,3,1> eteVec3;
+	auto clamp01 = [](T x)
+	{
+		return std::min(T(1), std::max(x, T(0)));
+	};
+
+	eteVec3 d1 = p1-p0;
+	eteVec3 d2 = q1-q0;
+	eteVec3 r = p0-q0;
+	T a = d1.squaredNorm();
+	T e = d2.squaredNorm();
+	T f = d2.dot(r);
+	T s = 0;
+	T t = 0;
+	T c = d1.dot(r);
+	T b = d1.dot(d2);
+	T denom = a*e-b*b;
+	if (denom != T(0)) {
+		s = clamp01((b*f-c*e)/denom);
+	}
+	else { // Parallel/degenerate edges
+		s = 0;
+	}
+	T tnom = b*s + f;
+	if(tnom < 0 || e == 0)
+	{
+		t = 0;
+		if(a == 0) {
+			s = 0;
+		} else {
+			s = clamp01(-c/a);
+		}
+	}
+	else if(tnom > e)
+	{
+		t = 1.0;
+		if(a == 0) {
+			s = 0;
+		} else {
+			s = clamp01((b-c)/a);
+		}
+	}
+	else {
+		t = tnom/e;
+	}
+
+	eteVec3 c1 = p0 + s*d1;
+	eteVec3 c2 = q0 + t*d2;
+	bary[0] = 1-s;
+	bary[1] = s;
+	bary[2] = 1-t;
+	bary[3] = t;
+	return c2-c1;
+}
+
 } // end namespace mcl
 
 #endif
-

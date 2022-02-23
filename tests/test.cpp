@@ -33,6 +33,14 @@ void test_projection_barys()
     mclAssert(barys.maxCoeff() > 1);
     mclAssert(proj_barys.maxCoeff() < 1);
     std::cout << barys.transpose() << " " << proj_barys.transpose() << std::endl;
+    
+    Vector3d p0(0,0,0);
+    Vector3d p1(1,0,0);
+    Vector3d q0(0,1,0);
+    Vector3d q1(1,1,0);
+    Vector4d ee_bary(0,0,0,0);
+    Vector3d line = mcl::edge_to_edge<double>(p0, p1, q0, q1, ee_bary);
+    std::cout << "Line: " << line.transpose() << ", barys: " << ee_bary.transpose() << std::endl;
 }
 
 void test_argparser(int argc, char *argv[])
