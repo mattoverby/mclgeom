@@ -56,7 +56,7 @@ static inline bool compute_masses(
 	if (M.rows() < max_Pi) {
 		M.conservativeResize(max_Pi+1);
 	}
-	M.segment(min_Pi, max_Pi-min_Pi).array() = 0;
+	M.segment(min_Pi, max_Pi-min_Pi+1).array() = 0;
 
 	// Compute mass contrib from each element
 	int np = P.rows();
@@ -96,7 +96,7 @@ static inline bool compute_masses(
 		}
 	}
 
-	double min_mass = M.segment(min_Pi, max_Pi-min_Pi).minCoeff();
+	double min_mass = M.segment(min_Pi, max_Pi-min_Pi+1).minCoeff();
 	return min_mass > 0;
 }
 
