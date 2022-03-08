@@ -15,7 +15,7 @@ namespace mcl
 template <typename DerivedT, typename DerivedF>
 static inline bool faces_from_tets(
 	const Eigen::MatrixBase<DerivedT> &T,
-	Eigen::MatrixBase<DerivedF> &F)
+	Eigen::PlainObjectBase<DerivedF> &F)
 {
 	using namespace Eigen;
 	struct FaceKey
@@ -81,7 +81,6 @@ static inline bool faces_from_tets(
 	} // end loop tets
 
 	int nf = faces.size();
-	mclAssert(nf > 0);
 	F.resize(nf, 3);
 	typename std::set<FaceKey>::const_iterator fit = faces.begin();
 	for (int f_idx=0; fit != faces.end(); ++fit, ++f_idx) {
