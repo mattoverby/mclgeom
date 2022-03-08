@@ -14,7 +14,7 @@ namespace mcl
 
 enum
 {
-	ENERGY_MODEL_INVALID = 0,
+	ENERGY_MODEL_INVALID = -1,
 	ENERGY_MODEL_ARAP,
 	ENERGY_MODEL_XUSPLINE_NH, // Xu spline (neo-Hookean)
 	ENERGY_MODEL_XUSPLINE_STVK, // Xu spline (St. VK)
