@@ -5,6 +5,7 @@
 #define MCL_SIGNEDVOLUME_HPP 1
 
 #include <Eigen/Dense>
+#include <vector>
 
 namespace mcl
 {

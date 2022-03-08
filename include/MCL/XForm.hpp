@@ -126,7 +126,6 @@ public:
 		Eigen::AngleAxis<T> rz(axis[2]*rad_deg, Eigen::Vector3d::UnitZ());
 		Eigen::Quaternion<T> q = rx * ry * rz;
 		XForm<T> r;
-		std::cout << q.matrix().rows() << std::endl;
 		r.data.template block<3,3>(0,0) = q.matrix();
 		return r;
 	}
