@@ -21,6 +21,11 @@ static inline std::vector<Eigen::Vector2d> signed_triangle_area_gradients(
 	const Eigen::Vector2d &p2,
 	const Eigen::Vector2d &p3);
 
+static inline double triangle_perimeter(
+	const Eigen::Vector2d &p1,
+	const Eigen::Vector2d &p2,
+	const Eigen::Vector2d &p3);
+
 static inline double triangle_area(
 	const Eigen::Vector3d &p1,
 	const Eigen::Vector3d &p2,
@@ -67,6 +72,11 @@ inline std::vector<Eigen::Vector2d> signed_triangle_area_gradients(
 	g[1] = 0.5 * Eigen::Vector2d(-a[1]+c[1], a[0]-c[0]);
 	g[2] = 0.5 * Eigen::Vector2d(a[1]-b[1], -a[0]+b[0]);
 	return g;
+}
+
+inline double triangle_perimeter(const Eigen::Vector2d &p1, const Eigen::Vector2d &p2, const Eigen::Vector2d &p3)
+{
+	return (p1-p2).norm() + (p2-p3).norm() + (p3-p1).norm();
 }
 
 // https://en.wikipedia.org/wiki/Heron%27s_formula
