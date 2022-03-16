@@ -187,9 +187,9 @@ public:
 	// Total elapsed time is summed per frame.
 	void write_csv(const std::string &csv_name = "mcl_log.csv")
 	{
-		std::lock_guard<std::mutex> guard(write_mutex);
 		std::unordered_map<std::string, std::vector<double> > timings_ms;
 		get_timings(timings_ms);
+		std::lock_guard<std::mutex> guard(write_mutex);
 		int num_frames = frame_data.size();
 		if (num_frames == 0) { return; } // no computation (excluding init)
 
