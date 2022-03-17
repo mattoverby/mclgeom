@@ -45,6 +45,12 @@ namespace mcl
 //   ...
 // } // timer stops, and function run time is recorded
 //
+// At the moment, nested timers are not supported. E.g.:
+// {
+//   mcl::TimedScope("Timer1");
+//   mcl::TimedScope("Timer2"); // error
+// }
+//
 // If timers are inside of a loop, the total is summed:
 // for (int i=0; i<10; ++i)
 // {
@@ -56,13 +62,14 @@ namespace mcl
 //   mcl::WriteLogCSV("mysolver_log.csv");
 //
 class FunctionTimerWrapper;
-#define ResetLog() FunctionTimerWrapper::reset_all()
-#define IncrementFrame() FunctionTimerWrapper::increment_frame()
-#define StopFrame() FunctionTimerWrapper::stop_frame();
-#define	AddRuntime(ms) FunctionTimerWrapper::add_runtime(ms, -2)
-#define	AddFrameRuntime(ms, frame) FunctionTimerWrapper::add_runtime(ms, frame)
+class FrameWrapper;
+#define ResetLog() FrameWrapper::reset_all()
+#define IncrementFrame() FrameWrapper frmWrapper_
+#define StopFrame() FrameWrapper::stop_frame();
+#define	AddRuntime(ms) FrameWrapper::add_runtime(ms, -2)
+#define	AddFrameRuntime(ms, frame) FrameWrapper::add_runtime(ms, frame)
+#define WriteLogCSV(csv) FrameWrapper::write_csv(csv)
 #define TimedScope(f) FunctionTimerWrapper ftWrapper_(f)
-#define WriteLogCSV(csv) FunctionTimerWrapper::write_csv(csv)
 
 // Singleton class for Logging
 // e.g., mcl::Logger &log = mcl::Logger::get();
@@ -285,15 +292,21 @@ protected:
 	std::vector<PerFrameData> frame_data;
 };
 
+class FrameWrapper
+{
+public:
+    static void reset_all() { mcl::Logger::get().clear(); }
+    static void stop_frame() { mcl::Logger::get().stop_frame(); }
+    static void add_runtime(double sec, int iter) { mcl::Logger::get().add_runtime_s(sec, iter); }
+    static void write_csv(const char *csv) { mcl::Logger::get().write_csv(std::string(csv)); }
+    FrameWrapper() { mcl::Logger::get().increment_frame(); }
+    ~FrameWrapper() { FrameWrapper::stop_frame(); }
+};
+
 class FunctionTimerWrapper
 {
 public:
 	const std::string f;
-	static void reset_all() { mcl::Logger::get().clear(); }
-	static void increment_frame() { mcl::Logger::get().increment_frame(); }
-	static void stop_frame() { mcl::Logger::get().stop_frame(); }
-	static void add_runtime(double sec, int iter) { mcl::Logger::get().add_runtime_s(sec, iter); }
-	static void write_csv(const char *csv) { mcl::Logger::get().write_csv(std::string(csv)); }
 	FunctionTimerWrapper(const char *f_) : f(f_) { mcl::Logger::get().start_timer(f); }
 	~FunctionTimerWrapper() { mcl::Logger::get().stop_timer(f); }
 };
