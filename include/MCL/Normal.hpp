@@ -17,7 +17,11 @@ static inline Eigen::Matrix<T,3,1> triangle_normal(
 	bool normalize = true)
 {
 	Eigen::Matrix<T,3,1> n = (b-a).cross(c-a);
-	if (normalize) { n.stableNormalize(); }
+	if (normalize)
+	{
+		T len = n.norm();
+		if (len > 0) { n /= len; }
+	}
 	return n;
 }
 
@@ -28,7 +32,11 @@ static inline Eigen::Matrix<T,2,1> edge_normal(
 	bool normalize = true)
 {
 	Eigen::Matrix<T,2,1> n(p1[1]-p0[1], -(p1[0]-p0[0]));
-	if (normalize) { n.stableNormalize(); }
+	if (normalize)
+	{
+		T len = n.norm();
+		if (len > 0) { n /= len; }
+	}
 	return n;
 }
 

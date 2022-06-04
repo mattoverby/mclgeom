@@ -12,13 +12,25 @@ namespace mcl
 {
 
 // L-BFGS implementation based on Nocedal & Wright Numerical Optimization book (Section 7.2)
+// adapted from code by Ioannis Karamouzas.
 //
 // Function pointers are meant to be used with lambdas, e.g.
 //   LBFGS<MatrixXd> lbfgs;
 //   lbfgs.gradient = [&](const MatrixXd &x, MatrixXd &g)->Scalar { return ... };
 //   double obj = lbfgs.minimize(x);
 //
-// If the g arg is not sized, don't compute gradient
+// If the g arg is not sized, don't compute gradient. This is to avoid
+// extra work when only the objective is needed (line search) and to
+// avoid redundant code. Example:
+//   lbfgs.gradient = [&](const MatrixXd &x, MatrixXd &g)->Scalar
+//   {
+//     objective = ...
+//     if (g.rows() == x.rows())
+//     {
+//        g = ... (reuse computation for objective)
+//     }
+//     return objective;
+//   };	
 //
 template <typename MatrixType>
 class LBFGS

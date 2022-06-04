@@ -11,6 +11,8 @@ namespace mcl
 
 
 // Projection on Triangle
+// I do not know the source of the function.
+// If anyone knows, please tell me!
 template <typename T>
 static inline Eigen::Matrix<T,3,1> point_on_triangle(const Eigen::Matrix<T,3,1> &point, const Eigen::Matrix<T,3,1> &p1, const Eigen::Matrix<T,3,1> &p2, const Eigen::Matrix<T,3,1> &p3);
 
@@ -51,8 +53,7 @@ static inline Eigen::Matrix<T,3,1> edge_to_edge(
 //	Implementation
 //
 
-// I do not know the source of the function.
-// If anyone knows, please tell me!
+
 template <typename T>
 Eigen::Matrix<T,3,1> point_on_triangle(const Eigen::Matrix<T,3,1> &point, const Eigen::Matrix<T,3,1> &p1, const Eigen::Matrix<T,3,1> &p2, const Eigen::Matrix<T,3,1> &p3)
 {

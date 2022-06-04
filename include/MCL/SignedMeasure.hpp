@@ -50,11 +50,6 @@ static inline double tet_surface_area(
 	const Eigen::Vector3d &p3,
 	const Eigen::Vector3d &p4);
 
-// Probably not where this belongs but oh well.
-// Returns the faces of a tet
-static inline std::vector<Eigen::Vector3i>
-	faces_from_tet(const Eigen::RowVector4i &t);
-
 //
 // Implementation
 //
@@ -128,17 +123,6 @@ inline double tet_surface_area(
 	double a3 = triangle_area(p3,p4,p1);
 	double a4 = triangle_area(p4,p2,p1);
 	return (a1+a2+a3+a4);
-}
-
-inline std::vector<Eigen::Vector3i> faces_from_tet(const Eigen::RowVector4i &t)
-{
-	using namespace Eigen;
-	std::vector<Vector3i> f = {
-		Vector3i(t[0], t[1], t[3]),
-		Vector3i(t[0], t[2], t[1]),
-		Vector3i(t[0], t[3], t[2]),
-		Vector3i(t[1], t[2], t[3]) };
-	return f;
 }
 
 } // ns mcl

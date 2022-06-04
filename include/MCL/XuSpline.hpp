@@ -14,6 +14,7 @@ namespace mcl
 //
 // The spline class can be overloaded for custom splines.
 // Some common ones (StVK, NeoHookean, Co-Rotated linear) are implemented below.
+// Code adapted from George Brown (https://georgbrown.github.io)
 //
 template<typename T>
 class XuSpline

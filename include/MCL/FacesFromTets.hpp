@@ -6,9 +6,22 @@
 
 #include <Eigen/Dense>
 #include <set>
+#include <vector>
 
 namespace mcl
 {
+
+// Returns just the 4 faces from a single tet
+inline std::vector<Eigen::Vector3i> faces_from_tet(const Eigen::RowVector4i &t)
+{
+	using namespace Eigen;
+	std::vector<Vector3i> f = {
+		Vector3i(t[0], t[1], t[3]),
+		Vector3i(t[0], t[2], t[1]),
+		Vector3i(t[0], t[3], t[2]),
+		Vector3i(t[1], t[2], t[3]) };
+	return f;
+}
 
 // Given a tet mesh T, compute surface triangles F.
 // True on success

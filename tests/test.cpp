@@ -6,6 +6,7 @@
 #include "MCL/Projection.hpp"
 #include "MCL/Barycoords.hpp"
 #include "MCL/ArgParser.hpp"
+#include "MCL/Normal.hpp"
 
 using namespace Eigen;
 
@@ -26,6 +27,8 @@ void test_projection_barys()
         Vector3d::Zero(),
         Vector3d(1,0,0),
         Vector3d(0,1,0) };
+    Vector3d n = mcl::triangle_normal<double>(f[0], f[1], f[2]);
+    mclAssert(n.norm() >= 0.99);
     Vector3d pt(2,2,2);
     Vector3d proj = mcl::point_on_triangle(pt, f[0], f[1], f[2]);
     Vector3d barys = mcl::point_triangle_barys(pt, f[0], f[1], f[2]);
