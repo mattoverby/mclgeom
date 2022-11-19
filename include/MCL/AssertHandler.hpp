@@ -35,8 +35,8 @@ static inline void mclAssertHandlerMsg(bool cond, const std::string& file, const
 // https://stackoverflow.com/questions/3046889/optional-parameters-with-c-macros
 // Also consider using #condition
 
-#define mclAssert_withmsg(cond, msg) mcl::mclAssertHandlerMsg(cond, std::string(__FILE__), __LINE__, msg)
-#define mclAssert_nomsg(cond) mcl::mclAssertHandler(cond, std::string(__FILE__), __LINE__)
+#define mclAssert_withmsg((cond), msg) mcl::mclAssertHandlerMsg((cond), std::string(__FILE__), __LINE__, msg)
+#define mclAssert_nomsg(cond) mcl::mclAssertHandler((cond), std::string(__FILE__), __LINE__)
 #define mclAssert_stripargs(xx,cond,msg,FUNC, ...) FUNC
 
 #define mclAssert(...) \
