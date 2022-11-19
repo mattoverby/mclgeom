@@ -1,10 +1,9 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
 
-#ifndef GINI_MESHTXT_HPP
-#define GINI_MESHTXT_HPP 1
+#ifndef MCL_MESHTXT_HPP
+#define MCL_MESHTXT_HPP 1
 
-#include <iostream>
 #include <fstream>
 #include <sstream>
 #include <Eigen/Geometry>
