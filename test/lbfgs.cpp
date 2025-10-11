@@ -57,9 +57,9 @@ int test_beam()
         MatrixXd inV;
         MatrixXi inT, inF;
         VectorXi inTT, inFT;
-        if (!igl::readMSH(MCL_GEOM_ROOT_DIR "/tests/bunny32k.msh", inV, inF, inT, inFT, inTT))
+        if (!igl::readMSH(MCLGEOM_ROOT_DIR "/test/bunny32k.msh", inV, inF, inT, inFT, inTT))
         {
-            std::cout << "Failed to load " << MCL_GEOM_ROOT_DIR "/tests/bunny32k.msh" << std::endl;
+            std::cout << "Failed to load " << MCLGEOM_ROOT_DIR "/test/bunny32k.msh" << std::endl;
             return EXIT_FAILURE;
         }
 

@@ -4,15 +4,14 @@
 #ifndef GINI_MESHTXT_HPP
 #define GINI_MESHTXT_HPP 1
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
 #include <Eigen/Geometry>
-#include <vector>
+#include <fstream>
 #include <iomanip>
+#include <iostream>
+#include <sstream>
+#include <vector>
 
-namespace mcl
-{
+namespace mcl {
 
 // Simple, slow, plain text
 //
@@ -21,35 +20,27 @@ namespace mcl
 // Returns true on success
 // TODO: some error checking on read
 
-static inline bool write_mesh_txt(
-    const std::string& filename,
-    const Eigen::MatrixXd &X,
-    const Eigen::MatrixXi &P);
+static inline bool
+write_mesh_txt(const std::string& filename, const Eigen::MatrixXd& X, const Eigen::MatrixXi& P);
 
-static inline bool read_mesh_txt(
-    const std::string& filename,
-    const Eigen::MatrixXd &X,
-    const Eigen::MatrixXi &P);
+static inline bool
+read_mesh_txt(const std::string& filename, const Eigen::MatrixXd& X, const Eigen::MatrixXi& P);
 
 //
 // Implementation
 //
 
-bool write_mesh_txt(
-	const std::string& filename,
-	const Eigen::MatrixXd &X,
-	const Eigen::MatrixXi &P)
+bool
+write_mesh_txt(const std::string& filename, const Eigen::MatrixXd& X, const Eigen::MatrixXi& P)
 {
     char delim = ' ';
 
-    if (X.cols() < 2 || X.cols() > 3)
-    {
+    if (X.cols() < 2 || X.cols() > 3) {
         printf("Cannot write mesh txt, bad dim X\n");
         return false;
     }
 
-    if (P.cols() < 3 || P.cols() > 4)
-    {
+    if (P.cols() < 3 || P.cols() > 4) {
         printf("Cannot write mesh txt, bad dim P\n");
         return false;
     }
@@ -59,12 +50,10 @@ bool write_mesh_txt(
 
     int nx = X.rows();
     int xc = X.cols();
-    for (int i=0; i<nx; ++i)
-    {
+    for (int i = 0; i < nx; ++i) {
         fi << 'v';
-        for (int j=0; j<xc; ++j)
-        {
-            fi << delim << X(i,j);
+        for (int j = 0; j < xc; ++j) {
+            fi << delim << X(i, j);
         }
         fi << std::endl;
     }
@@ -72,12 +61,10 @@ bool write_mesh_txt(
     int np = P.rows();
     int pc = P.cols();
     char prim_tag = pc == 3 ? 'f' : 't'; // face, tet
-    for (int i=0; i<np; ++i)
-    {
+    for (int i = 0; i < np; ++i) {
         fi << prim_tag;
-        for (int j=0; j<pc; ++j)
-        {
-            fi << delim << P(i,j);
+        for (int j = 0; j < pc; ++j) {
+            fi << delim << P(i, j);
         }
         fi << std::endl;
     }
@@ -86,10 +73,8 @@ bool write_mesh_txt(
     return true;
 }
 
-bool read_mesh_txt(
-    const std::string& filename,
-    Eigen::MatrixXd &X,
-    Eigen::MatrixXi &P)
+bool
+read_mesh_txt(const std::string& filename, Eigen::MatrixXd& X, Eigen::MatrixXi& P)
 {
     int x_dim = 0;
     int p_dim = 0;
@@ -98,49 +83,41 @@ bool read_mesh_txt(
     std::vector<Vector4i> p;
 
     std::ifstream fi(filename);
-    if (fi.is_open())
-    {
+    if (fi.is_open()) {
         std::string line;
-        while (std::getline(fi,line) )
-        {
+        while (std::getline(fi, line)) {
             std::stringstream ss(line);
             char tag = 'X';
             ss >> tag;
-            switch (tag)
-            {
+            switch (tag) {
                 default: {
                     printf("Bad line: %s\n", line.c_str());
                 } break;
                 case 'v': {
                     x.emplace_back(Vector3d::Zero());
-                    for (int i=0; i<3 && ss.good(); ++i)
-                    {
-                        x_dim = std::max(x_dim, i+1);
+                    for (int i = 0; i < 3 && ss.good(); ++i) {
+                        x_dim = std::max(x_dim, i + 1);
                         ss >> x.back()[i];
                     }
                 } break;
                 case 'f': {
                     p.emplace_back(Vector4i::Zero());
-                    for (int i=0; i<3 && ss.good(); ++i)
-                    {
-                        p_dim = std::max(p_dim, i+1);
+                    for (int i = 0; i < 3 && ss.good(); ++i) {
+                        p_dim = std::max(p_dim, i + 1);
                         ss >> p.back()[i];
                     }
                 } break;
                 case 't': {
                     p.emplace_back(Vector4i::Zero());
-                    for (int i=0; i<4 && ss.good(); ++i)
-                    {
-                        p_dim = std::max(p_dim, i+1);
+                    for (int i = 0; i < 4 && ss.good(); ++i) {
+                        p_dim = std::max(p_dim, i + 1);
                         ss >> p.back()[i];
                     }
                 } break;
             }
         }
         fi.close();
-    }
-    else
-    {
+    } else {
         printf("Could not open %s\n", filename.c_str());
         return false;
     }
@@ -148,22 +125,18 @@ bool read_mesh_txt(
     // Make X
     int nx = x.size();
     X.resize(nx, x_dim);
-    for (int i=0; i<nx; ++i)
-    {
-        for (int j=0; j<x_dim; ++j)
-        {
-            X(i,j) = x[i][j];
+    for (int i = 0; i < nx; ++i) {
+        for (int j = 0; j < x_dim; ++j) {
+            X(i, j) = x[i][j];
         }
     }
 
     // Make P
     int np = p.size();
     P.resize(np, p_dim);
-    for (int i=0; i<np; ++i)
-    {
-        for (int j=0; j<p_dim; ++j)
-        {
-            P(i,j) = p[i][j];
+    for (int i = 0; i < np; ++i) {
+        for (int j = 0; j < p_dim; ++j) {
+            P(i, j) = p[i][j];
         }
     }
 

@@ -6,38 +6,37 @@
 
 #include <Eigen/Dense>
 
-namespace mcl
-{
+namespace mcl {
 
-template <typename T>
-static inline Eigen::Matrix<T,3,1> triangle_normal(
-	const Eigen::Matrix<T,3,1> &a,
-	const Eigen::Matrix<T,3,1> &b,
-	const Eigen::Matrix<T,3,1> &c,
-	bool normalize = true)
+template<typename T>
+static inline Eigen::Matrix<T, 3, 1>
+triangle_normal(const Eigen::Matrix<T, 3, 1>& a,
+                const Eigen::Matrix<T, 3, 1>& b,
+                const Eigen::Matrix<T, 3, 1>& c,
+                bool normalize = true)
 {
-	Eigen::Matrix<T,3,1> n = (b-a).cross(c-a);
-	if (normalize)
-	{
-		T len = n.norm();
-		if (len > 0) { n /= len; }
-	}
-	return n;
+    Eigen::Matrix<T, 3, 1> n = (b - a).cross(c - a);
+    if (normalize) {
+        T len = n.norm();
+        if (len > 0) {
+            n /= len;
+        }
+    }
+    return n;
 }
 
-template <typename T>
-static inline Eigen::Matrix<T,2,1> edge_normal(
-	const Eigen::Matrix<T,2,1> &p0,
-	const Eigen::Matrix<T,2,1> &p1,
-	bool normalize = true)
+template<typename T>
+static inline Eigen::Matrix<T, 2, 1>
+edge_normal(const Eigen::Matrix<T, 2, 1>& p0, const Eigen::Matrix<T, 2, 1>& p1, bool normalize = true)
 {
-	Eigen::Matrix<T,2,1> n(p1[1]-p0[1], -(p1[0]-p0[0]));
-	if (normalize)
-	{
-		T len = n.norm();
-		if (len > 0) { n /= len; }
-	}
-	return n;
+    Eigen::Matrix<T, 2, 1> n(p1[1] - p0[1], -(p1[0] - p0[0]));
+    if (normalize) {
+        T len = n.norm();
+        if (len > 0) {
+            n /= len;
+        }
+    }
+    return n;
 }
 
 } // ns mcl
