@@ -4,14 +4,14 @@
 #ifndef MCL_READMSH4_HPP
 #define MCL_READMSH4_HPP 1
 
-#include <fstream>
 #include <Eigen/Core>
+#include <fstream>
 
-namespace mcl
-{
+namespace mcl {
 
 // Reads a version 4 MSH file, not supported by igl.
-static inline bool readMSH4(const std::string& filePath, Eigen::MatrixXd& TV, Eigen::MatrixXi& TT)
+static inline bool
+readMSH4(const std::string& filePath, Eigen::MatrixXd& TV, Eigen::MatrixXi& TT)
 {
     FILE* in = fopen(filePath.c_str(), "r");
     if (!in) {
@@ -20,8 +20,8 @@ static inline bool readMSH4(const std::string& filePath, Eigen::MatrixXd& TV, Ei
 
     TV.resize(0, 3);
     TT.resize(0, 4);
-	char* tmp;
-	int tmp_i;
+    char* tmp;
+    int tmp_i;
 
     char buf[BUFSIZ];
     while ((!feof(in)) && fgets(buf, BUFSIZ, in)) {
@@ -34,8 +34,8 @@ static inline bool readMSH4(const std::string& filePath, Eigen::MatrixXd& TV, Ei
             break;
         }
     }
-    
-    if (TV.rows()== 0)
+
+    if (TV.rows() == 0)
         return false;
 
     int bypass;
@@ -59,17 +59,16 @@ static inline bool readMSH4(const std::string& filePath, Eigen::MatrixXd& TV, Ei
 
     int minTT = 9999;
     for (int elemI = 0; elemI < TT.rows(); elemI++) {
-        tmp_i = fscanf(in, "%d %d %d %d %d\n", &bypass,
-            &TT(elemI, 0), &TT(elemI, 1), &TT(elemI, 2), &TT(elemI, 3));
+        tmp_i = fscanf(in, "%d %d %d %d %d\n", &bypass, &TT(elemI, 0), &TT(elemI, 1), &TT(elemI, 2), &TT(elemI, 3));
         minTT = std::min(minTT, TT.row(elemI).minCoeff());
     }
-    
+
     if (minTT != 0) {
         TT.array() -= minTT;
     }
 
-	(void)(tmp);
-	(void)(tmp_i);
+    (void)(tmp);
+    (void)(tmp_i);
 
     // while ((!feof(in)) && fgets(buf, BUFSIZ, in)) {
     //     if (strncmp("$Surface", buf, 7) == 0) {

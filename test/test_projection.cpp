@@ -11,13 +11,12 @@
 using namespace Eigen;
 
 void test_projection_barys();
-void test_argparser(int argc, char *argv[]);
 
 // Should probably replace with actual unit testing through CTest
 int main(int argc, char *argv[])
 {
     test_projection_barys();
-    test_argparser(argc, argv);
+    
     return EXIT_SUCCESS;
 }
 
@@ -44,10 +43,4 @@ void test_projection_barys()
     Vector4d ee_bary(0,0,0,0);
     Vector3d line = mcl::edge_to_edge<double>(p0, p1, q0, q1, ee_bary);
     std::cout << "Line: " << line.transpose() << ", barys: " << ee_bary.transpose() << std::endl;
-}
-
-void test_argparser(int argc, char *argv[])
-{
-    mcl::ArgParser args(argc, argv);
-    args.save_to_file("args.txt");
 }

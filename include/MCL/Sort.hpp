@@ -4,15 +4,21 @@
 #ifndef MCL_SORT_HPP
 #define MCL_SORT_HPP 1
 
-namespace mcl
-{
+namespace mcl {
 
 template<typename T>
-static inline void sort3(T& a, T& b, T& c)
+static inline void
+sort3(T& a, T& b, T& c)
 {
-	if (a > b) { std::swap(a,b); }
-	if (b > c) { std::swap(b,c); }
-	if (a > b) { std::swap(a,b); }
+    if (a > b) {
+        std::swap(a, b);
+    }
+    if (b > c) {
+        std::swap(b, c);
+    }
+    if (a > b) {
+        std::swap(a, b);
+    }
 }
 
 } // end ns mcl

@@ -4,10 +4,10 @@
 #ifndef MCL_ARGPARSER_HPP
 #define MCL_ARGPARSER_HPP 1
 
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <unordered_map>
-#include <fstream>
 
 //
 // mcl::ArgParser does simple space-delimited argument parsing
@@ -40,69 +40,73 @@
 //	overwriteMe: 3.0
 //
 
-namespace mcl
-{
+namespace mcl {
 
 class ArgParser
 {
-public:
-	ArgParser(const int &argc, char** argv)
-	{
-		if (argc < 1) { return; }
-		std::stringstream ss_full;
-		ss_full << argv[0];
-		for (int i=1; i<argc-1; ++i)
-		{
-			args[argv[i]] = argv[i+1];
-			ss_full << ' ' << argv[i];
-		}
-		if (argc>1)
-		{
-			args[argv[argc-1]] = "0";
-			ss_full << ' ' << argv[argc-1];
-		}
-		full = ss_full.str();
-	}
+  public:
+    ArgParser(const int& argc, char** argv)
+    {
+        if (argc < 1) {
+            return;
+        }
+        std::stringstream ss_full;
+        ss_full << argv[0];
+        for (int i = 1; i < argc - 1; ++i) {
+            args[argv[i]] = argv[i + 1];
+            ss_full << ' ' << argv[i];
+        }
+        if (argc > 1) {
+            args[argv[argc - 1]] = "0";
+            ss_full << ' ' << argv[argc - 1];
+        }
+        full = ss_full.str();
+    }
 
-	// Return whether or not an argument exists
-	inline bool exists(const std::string label) const { return (args.count(label) > 0); }
+    // Return whether or not an argument exists
+    inline bool exists(const std::string label) const { return (args.count(label) > 0); }
 
-	// Return the value of the argument (or zero, if not exists)
-	template<typename T> const T get(const std::string label) const
-	{
-		if (exists(label))
-		{
-			std::stringstream ss; ss << args.at(label);
-			T value; ss >> value;
-			return value;
-		}
-		return T();
-	} // end getter
+    // Return the value of the argument (or zero, if not exists)
+    template<typename T>
+    const T get(const std::string label) const
+    {
+        if (exists(label)) {
+            std::stringstream ss;
+            ss << args.at(label);
+            T value;
+            ss >> value;
+            return value;
+        }
+        return T();
+    } // end getter
 
-	// Return true on exists and overwrites value, false otherwise.
-	template<typename T> bool get(const std::string label, T *result) const
-	{
-		if(exists(label))
-		{
-			std::stringstream ss; ss << args.at(label);
-			ss >> *result; return true;
-		}
-		return false;
-	} // end getter to reference
+    // Return true on exists and overwrites value, false otherwise.
+    template<typename T>
+    bool get(const std::string label, T* result) const
+    {
+        if (exists(label)) {
+            std::stringstream ss;
+            ss << args.at(label);
+            ss >> *result;
+            return true;
+        }
+        return false;
+    } // end getter to reference
 
-	void save_to_file(const std::string &fn) const
-	{
-		std::ofstream ofout(fn.c_str());
-		if (!ofout.good()) { return; }
-		ofout << full;
-		ofout.close();
-	}
+    void save_to_file(const std::string& fn) const
+    {
+        std::ofstream ofout(fn.c_str());
+        if (!ofout.good()) {
+            return;
+        }
+        ofout << full;
+        ofout.close();
+    }
 
-protected:
-	std::unordered_map<std::string, std::string> args;
-	std::string full;
+  protected:
+    std::unordered_map<std::string, std::string> args;
+    std::string full;
 };
-
 
 }; // end namespace mcl
 
