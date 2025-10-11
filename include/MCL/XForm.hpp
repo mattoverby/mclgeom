@@ -8,6 +8,9 @@
 
 namespace mcl {
 
+//
+// This class needs a serious refactor for efficiency..
+//
 template<typename T>
 class XForm
 {

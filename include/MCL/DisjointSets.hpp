@@ -21,8 +21,6 @@
 #ifndef MCL_DISJOINTSETS_HPP
 #define MCL_DISJOINTSETS_HPP 1
 
-// Edits by Matt Overby: added mcl namespace
-
 #include <atomic>
 #include <iostream>
 #include <vector>

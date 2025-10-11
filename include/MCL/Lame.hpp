@@ -12,7 +12,7 @@ class Lame
     // Static presets
     static Lame rubber(int model_ = 0) { return Lame(10000000, 0.499, model_); }          // true rubber
     static Lame soft_rubber(int model_ = 0) { return Lame(10000000, 0.399, model_); }     // fun rubber!
-    static Lame very_soft_rubber(int model_ = 0) { return Lame(1000000, 0.299, model_); } // more funner!
+    static Lame very_soft_rubber(int model_ = 0) { return Lame(1000000, 0.299, model_); } // more fun!
     static Lame one(int model_ = 0)
     {
         Lame l;
