@@ -30,9 +30,9 @@ class XuSpline
     virtual T ddh(T x) const = 0;
 
     // Eq. 16: compression term that helps with stability
-    static T compress_term(T kappa, T x) { return (kappa / 12.0) * std::pow((1.0 - x) / 6.0, 3.0); }
-    static T d_compress_term(T kappa, T x) { return (-kappa / 24.0) * (std::pow((1.0 - x) / (6.0), 2.0)); }
-    static T dd_compress_term(T kappa, T x) { return (1.0 / 432.0) * kappa * (1.0 - x); }
+    static T compress_term(T kappa, T x) { return (kappa / 12.0) * std::pow((T(1) - x) / 6.0, 3.0); }
+    static T d_compress_term(T kappa, T x) { return (-kappa / 24.0) * (std::pow((T(1) - x) / (6.0), 2.0)); }
+    static T dd_compress_term(T kappa, T x) { return (T(1) / 432.0) * kappa * (T(1) - x); }
 };
 
 template<typename T>
@@ -46,7 +46,7 @@ class XuNeoHookean : public XuSpline<T>
     {
     }
     const T mu, lambda, kappa;
-    T f(T x) const { return 0.5 * mu * (x * x - 1.0); }
+    T f(T x) const { return 0.5 * mu * (x * x - T(1)); }
     T g(T x) const
     {
         (void)(x);
@@ -74,7 +74,7 @@ class XuNeoHookean : public XuSpline<T>
         (void)(x);
         return 0.0;
     }
-    T ddh(T x) const { return (lambda * (1.0 - std::log(x)) + mu) / (x * x) + XuSpline<T>::dd_compress_term(kappa, x); }
+    T ddh(T x) const { return (lambda * (T(1) - std::log(x)) + mu) / (x * x) + XuSpline<T>::dd_compress_term(kappa, x); }
 };
 
 template<typename T>
@@ -91,18 +91,18 @@ class XuStVK : public XuSpline<T>
     T f(T x) const
     {
         T x2 = x * x;
-        return 0.125 * lambda * (x2 * x2 - 6.0 * x2 + 5.0) + 0.25 * mu * (x2 - 1.0) * (x2 - 1.0);
+        return 0.125 * lambda * (x2 * x2 - 6.0 * x2 + 5.0) + 0.25 * mu * (x2 - T(1)) * (x2 - T(1));
     }
-    T g(T x) const { return 0.25 * lambda * (x * x - 1.0); }
+    T g(T x) const { return 0.25 * lambda * (x * x - T(1)); }
     T h(T x) const { return XuSpline<T>::compress_term(kappa, x); }
     T df(T x) const
     {
         T x2 = x * x;
-        return 0.125 * lambda * (4.0 * x2 * x - 12.0 * x) + mu * x * (x2 - 1.0);
+        return 0.125 * lambda * (4.0 * x2 * x - 12.0 * x) + mu * x * (x2 - T(1));
     }
     T dg(T x) const { return 0.5 * lambda * x; }
     T dh(T x) const { return XuSpline<T>::d_compress_term(kappa, x); }
-    T ddf(T x) const { return 0.5 * mu * ((6.0 * x * x - 2.0) + 1.5 * lambda * (x * x - 1.0)); }
+    T ddf(T x) const { return 0.5 * mu * ((6.0 * x * x - 2.0) + 1.5 * lambda * (x * x - T(1))); }
     T ddg(T x) const
     {
         (void)(x);
@@ -126,10 +126,10 @@ class XuCoRotated : public XuSpline<T>
     {
     }
     const T mu, lambda, kappa;
-    T f(T x) const { return 0.5 * lambda * (x * x - 6.0 * x + 5.0) + mu * (x - 1.0) * (x - 1.0); }
-    T g(T x) const { return lambda * (x - 1.0); }
+    T f(T x) const { return 0.5 * lambda * (x * x - 6.0 * x + 5.0) + mu * (x - T(1)) * (x - T(1)); }
+    T g(T x) const { return lambda * (x - T(1)); }
     T h(T x) const { return XuSpline<T>::compress_term(kappa, x); }
-    T df(T x) const { return 0.5 * lambda * (2.0 * x - 6.0) + 2.0 * mu * (x - 1.0); }
+    T df(T x) const { return 0.5 * lambda * (2.0 * x - 6.0) + 2.0 * mu * (x - T(1)); }
     T dg(T x) const
     {
         (void)(x);
