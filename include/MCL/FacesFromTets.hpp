@@ -4,6 +4,8 @@
 #ifndef MCL_FACESFROMTETS_HPP
 #define MCL_FACESFROMTETS_HPP 1
 
+#include "Sort.hpp"
+
 #include <Eigen/Dense>
 #include <set>
 #include <vector>
