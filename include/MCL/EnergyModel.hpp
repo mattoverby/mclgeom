@@ -1,13 +1,12 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
 
-#ifndef MCL_ENERGYMODEL_HPP
-#define MCL_ENERGYMODEL_HPP 1
+#ifndef MCL_GEOM_ENERGYMODEL_HPP
+#define MCL_GEOM_ENERGYMODEL_HPP 1
 
-#include "MCL/Lame.hpp"
-#include "MCL/XuSpline.hpp"
+#include "Lame.hpp"
+#include "XuSpline.hpp"
 #include <Eigen/Dense>
-#include <memory>
 
 namespace mcl {
 
@@ -25,6 +24,7 @@ enum
 };
 
 // Nonlinear Material Design Using Principal Stretches, Xu et al. 2015.
+// See: MCL/XuSpline.hpp
 template<int DIM, typename T>
 class XuSplineModel
 {
@@ -38,7 +38,7 @@ class XuSplineModel
     static void hessian(const XuSpline<T>* s, const VecD& x, MatD& H);
 };
 
-// Simplified stable Neo-Hookean (similar to Smith et al. '17)
+// Simplified Stable Neo-Hookean (similar to Smith et al. '17)
 template<int DIM, typename T>
 class StableNeoHookean
 {
@@ -104,9 +104,6 @@ template<int DIM, typename T>
 T
 XuSplineModel<DIM, T>::gradient(const XuSpline<T>* s, const VecD& x, VecD& g)
 {
-    if (g.size() != x.size()) {
-        g.resize(x.size());
-    }
     if (DIM == 3) {
         T hprime = s->dh(x[0] * x[1] * x[2]);
         g[0] = s->df(x[0]) + s->dg(x[0] * x[1]) * x[1] + s->dg(x[2] * x[0]) * x[2] + hprime * x[1] * x[2];
@@ -295,6 +292,119 @@ SymmDirichlet<DIM, T>::hessian(const VecD& x, MatD& H)
     for (int i = 0; i < DIM; ++i)
         H(i, i) = 2.0 + 6.0 * std::pow(x[i], T(-4.0));
 }
+
+//================================================
+// Wrapper/catch-all for known energy models.
+//================================================
+
+template<int DIM, typename T>
+class EnergyModel
+{
+protected:
+    typedef Eigen::Matrix<T, DIM, 1> VecD;
+    typedef Eigen::Matrix<T, DIM, DIM> MatD;
+
+public:
+
+    // Should consider a more efficient way to handle spline model.
+    // It's an object instead of a static class to allow custom splines to
+    // be used XuSplineModel. So for now declare known ones as objects.
+    const Lame &lame;
+    const XuNeoHookean<T> xu_nh;
+    const XuStVK<T> xu_stvk;
+    const XuCoRotated<T> xu_cr;
+
+    EnergyModel(const Lame &lame_)
+        : lame(lame_)
+        , xu_nh(lame_.mu(), lame_.lambda(), 0.1)
+        , xu_stvk(lame_.mu(), lame_.lambda(), 0.1)
+        , xu_cr(lame_.mu(), lame_.lambda(), 0.1)
+    {
+    }
+
+    T energy_density(const VecD& x)
+    {
+        T e = std::numeric_limits<T>::max();
+        switch(lame.model())
+        {
+            case ENERGY_MODEL_STABLE_NH: {
+                e = StableNeoHookean<DIM, T>::energy_density(lame, x);
+            } break;
+            case ENERGY_MODEL_SYMM_DIR: {
+                e = SymmDirichlet<DIM, T>::energy_density(x);
+            } break;
+            case ENERGY_MODEL_NH: {
+                e = IsoNeoHookean<DIM, T>::energy_density(lame, x);	
+            } break;
+            case ENERGY_MODEL_XUSPLINE_NH: {
+                e = XuSplineModel<DIM, T>::energy_density(&xu_nh, x);	
+            } break;
+            case ENERGY_MODEL_XUSPLINE_STVK: {
+                e = XuSplineModel<DIM, T>::energy_density(&xu_stvk, x);	
+            } break;
+            case ENERGY_MODEL_XUSPLINE_COROTATE: {
+                e = XuSplineModel<DIM, T>::energy_density(&xu_cr, x);	
+            } break;
+            default: break;
+        }
+        return e;
+    }
+
+    T gradient(const VecD& x, VecD& g)
+    {
+        T e = std::numeric_limits<T>::max();
+        switch(lame.model())
+        {
+            case ENERGY_MODEL_STABLE_NH: {
+                e = StableNeoHookean<DIM, T>::gradient(lame, x, g);
+            } break;
+            case ENERGY_MODEL_SYMM_DIR: {
+                e = SymmDirichlet<DIM, T>::gradient(x, g);
+            } break;
+            case ENERGY_MODEL_NH: {
+                e = IsoNeoHookean<DIM, T>::gradient(lame, x, g);	
+            } break;
+            case ENERGY_MODEL_XUSPLINE_NH: {
+                e = XuSplineModel<DIM, T>::gradient(&xu_nh, x, g);	
+            } break;
+            case ENERGY_MODEL_XUSPLINE_STVK: {
+                e = XuSplineModel<DIM, T>::gradient(&xu_stvk, x, g);	
+            } break;
+            case ENERGY_MODEL_XUSPLINE_COROTATE: {
+                e = XuSplineModel<DIM, T>::gradient(&xu_cr, x, g);
+            } break;
+            default: break;
+        }
+        return e;
+    }
+
+    void hessian(const VecD& x, MatD& H)
+    {
+        H.setZero();
+        switch(lame.model())
+        {
+            case ENERGY_MODEL_STABLE_NH: {
+                StableNeoHookean<DIM, T>::hessian(lame, x, H);
+            } break;
+            case ENERGY_MODEL_SYMM_DIR: {
+                SymmDirichlet<DIM, T>::hessian(x, H);
+            } break;
+            case ENERGY_MODEL_NH: {
+                IsoNeoHookean<DIM, T>::hessian(lame, x, H);	
+            } break;
+            case ENERGY_MODEL_XUSPLINE_NH: {
+                XuSplineModel<DIM, T>::hessian(&xu_nh, x, H);	
+            } break;
+            case ENERGY_MODEL_XUSPLINE_STVK: {
+                XuSplineModel<DIM, T>::hessian(&xu_stvk, x, H);
+            } break;
+            case ENERGY_MODEL_XUSPLINE_COROTATE: {
+                XuSplineModel<DIM, T>::hessian(&xu_cr, x, H);	
+            } break;
+            default: break;
+        }
+    }
+};
 
 } // end namespace mcl
 

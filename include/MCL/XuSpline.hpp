@@ -1,8 +1,9 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
 
-#ifndef MCL_XUSPLINE_HPP
-#define MCL_XUSPLINE_HPP 1
+#ifndef MCL_GEOM_XUSPLINE_HPP
+#define MCL_GEOM_XUSPLINE_HPP 1
+
 #include <cmath>
 
 namespace mcl {

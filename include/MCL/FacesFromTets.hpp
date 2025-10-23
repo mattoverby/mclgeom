@@ -1,8 +1,12 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
 
-#ifndef MCL_FACESFROMTETS_HPP
-#define MCL_FACESFROMTETS_HPP 1
+//
+// TODO: rename file to "MakeFacets"
+//
+
+#ifndef MCL_GEOM_FACESFROMTETS_HPP
+#define MCL_GEOM_FACESFROMTETS_HPP 1
 
 #include "Sort.hpp"
 
@@ -102,6 +106,42 @@ faces_from_tets(const Eigen::MatrixBase<DerivedT>& T, Eigen::PlainObjectBase<Der
     }
 
     return true;
+}
+
+// Given a mesh of tets or triangles, compute unique edges E.
+// True on success
+namespace mcl {
+template<typename DerivedP, typename DerivedE>
+static inline bool
+get_unique_edges(const Eigen::MatrixBase<DerivedP>& P, Eigen::PlainObjectBase<DerivedE>& E)
+{
+    int P_DIM = P.cols();
+    std::vector<Eigen::Vector2i> edges;
+    edges.reserve(P.rows() * 2);
+    std::set<std::pair<int,int>> edges_set;
+    for (int i=0; i<P.rows(); ++i) {
+        for (int j=1; j<P.cols(); ++j) {
+            int e0 = P(i,j);
+            int e1 = P(i,(j+1)%P_DIM);
+            if (e1 > e0) {
+                std::swap(e0, e1);
+            }
+            bool is_unique = edges_set.emplace(e0, e1).second;
+            if (is_unique) {
+                edges.emplace_back(e0, e1);
+            }
+        }
+    }
+    if (edges.size() > 0) {
+        E.resize(edges.size(), 2);
+        int e_ids = 0;
+        for (auto e : edges) {
+            E.row(e_ids++) = e;
+        }
+    }
+
+    return E.rows() > 0;
+}
 }
 
 } // ns mcl

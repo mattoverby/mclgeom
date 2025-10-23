@@ -22,15 +22,15 @@ target_include_directories(${PROJECT_NAME} INTERFACE
 )
 add_library(mcl::geom ALIAS ${PROJECT_NAME})
 
+# Set define for loading objs
+add_definitions(-DMCLGEOM_ROOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+
 # Build visual/rendering examples
 if (MCLGEOM_EXAMPLES)
 
     # Libigl for rendering/interface
     include(libigl)
 	igl_include(glfw)
-
-	# Set define for loading objs
-	add_definitions(-DMCLGEOM_ROOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 
     add_executable(lbfgs ${CMAKE_CURRENT_SOURCE_DIR}/test/lbfgs.cpp)
     target_link_libraries(lbfgs PUBLIC igl::glfw mcl::geom)
