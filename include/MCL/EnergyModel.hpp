@@ -47,9 +47,9 @@ class StableNeoHookean
     typedef Eigen::Matrix<T, DIM, DIM> MatD;
 
   public:
-    static T energy_density(const Lame& lame, const VecD& x);
-    static T gradient(const Lame& lame, const VecD& x, VecD& g);
-    static void hessian(const Lame& lame, const VecD& x, MatD& H);
+    static T energy_density(const Lame<T>& lame, const VecD& x);
+    static T gradient(const Lame<T>& lame, const VecD& x, VecD& g);
+    static void hessian(const Lame<T>& lame, const VecD& x, MatD& H);
 };
 
 // Classic (isotropic) Neo-Hookean
@@ -61,9 +61,9 @@ class IsoNeoHookean
     typedef Eigen::Matrix<T, DIM, DIM> MatD;
 
   public:
-    static T energy_density(const Lame& lame, const VecD& x);
-    static T gradient(const Lame& lame, const VecD& x, VecD& g);
-    static void hessian(const Lame& lame, const VecD& x, MatD& H);
+    static T energy_density(const Lame<T>& lame, const VecD& x);
+    static T gradient(const Lame<T>& lame, const VecD& x, VecD& g);
+    static void hessian(const Lame<T>& lame, const VecD& x, MatD& H);
 };
 
 // SLIM Symmetric Dirichlet
@@ -154,7 +154,7 @@ XuSplineModel<DIM, T>::hessian(const XuSpline<T>* s, const VecD& x, MatD& H)
 
 template<int DIM, typename T>
 T
-StableNeoHookean<DIM, T>::energy_density(const Lame& lame, const VecD& x)
+StableNeoHookean<DIM, T>::energy_density(const Lame<T>& lame, const VecD& x)
 {
     if (!x.allFinite() || x.minCoeff() <= 0)
         return std::numeric_limits<float>::max();
@@ -168,7 +168,7 @@ StableNeoHookean<DIM, T>::energy_density(const Lame& lame, const VecD& x)
 
 template<int DIM, typename T>
 T
-StableNeoHookean<DIM, T>::gradient(const Lame& lame, const VecD& x, VecD& grad)
+StableNeoHookean<DIM, T>::gradient(const Lame<T>& lame, const VecD& x, VecD& grad)
 {
     T alpha = 1.0 + lame.mu() / lame.lambda();
     T J = x.prod();
@@ -179,7 +179,7 @@ StableNeoHookean<DIM, T>::gradient(const Lame& lame, const VecD& x, VecD& grad)
 
 template<int DIM, typename T>
 void
-StableNeoHookean<DIM, T>::hessian(const Lame& lame, const VecD& x, MatD& hess)
+StableNeoHookean<DIM, T>::hessian(const Lame<T>& lame, const VecD& x, MatD& hess)
 {
     T alpha = 1.0 + lame.mu() / lame.lambda();
     T J = x.prod();
@@ -212,7 +212,7 @@ StableNeoHookean<DIM, T>::hessian(const Lame& lame, const VecD& x, MatD& hess)
 
 template<int DIM, typename T>
 T
-IsoNeoHookean<DIM, T>::energy_density(const Lame& lame, const VecD& x)
+IsoNeoHookean<DIM, T>::energy_density(const Lame<T>& lame, const VecD& x)
 {
     if (!x.allFinite() || x.minCoeff() <= 0)
         return std::numeric_limits<float>::max();
@@ -229,7 +229,7 @@ IsoNeoHookean<DIM, T>::energy_density(const Lame& lame, const VecD& x)
 
 template<int DIM, typename T>
 T
-IsoNeoHookean<DIM, T>::gradient(const Lame& lame, const VecD& x, VecD& grad)
+IsoNeoHookean<DIM, T>::gradient(const Lame<T>& lame, const VecD& x, VecD& grad)
 {
     T J = x.prod();
     VecD x_inv = x.cwiseInverse();
@@ -239,7 +239,7 @@ IsoNeoHookean<DIM, T>::gradient(const Lame& lame, const VecD& x, VecD& grad)
 
 template<int DIM, typename T>
 void
-IsoNeoHookean<DIM, T>::hessian(const Lame& lame, const VecD& x, MatD& hess)
+IsoNeoHookean<DIM, T>::hessian(const Lame<T>& lame, const VecD& x, MatD& hess)
 {
     static const MatD Iden = MatD::Identity();
     T J = x.prod();
@@ -309,12 +309,12 @@ public:
     // Should consider a more efficient way to handle spline model.
     // It's an object instead of a static class to allow custom splines to
     // be used XuSplineModel. So for now declare known ones as objects.
-    const Lame &lame;
+    const Lame<T> &lame;
     const XuNeoHookean<T> xu_nh;
     const XuStVK<T> xu_stvk;
     const XuCoRotated<T> xu_cr;
 
-    EnergyModel(const Lame &lame_)
+    EnergyModel(const Lame<T> &lame_)
         : lame(lame_)
         , xu_nh(lame_.mu(), lame_.lambda(), 0.1)
         , xu_stvk(lame_.mu(), lame_.lambda(), 0.1)
