@@ -2,50 +2,27 @@
 // Distributed under the MIT License.
 
 #include <iostream>
-#include "MCL/AssertHandler.hpp"
-#include "MCL/LBFGS.hpp"
-#include <igl/readMSH.h>
+
+#include <MCL/AssertHandler.hpp>
+#include <MCL/LBFGS.hpp>
+#include <MCL/ReadEleNode.hpp>
+#include <MCL/Centerize.hpp>
+
 #include <igl/edges.h>
 #include <igl/opengl/glfw/Viewer.h>
-#include "MCL/Centerize.hpp"
 
 using namespace Eigen;
 
-int test_lbfgs();
-int test_beam();
+int test_mesh_deform();
 
-// Should probably replace with actual unit testing through CTest
 int main(int argc, char *argv[])
 {
     (void)(argc);
     (void)(argv);
-    //return test_lbfgs();
-    return test_beam();
+    return test_mesh_deform();
 }
 
-int test_lbfgs()
-{
-    mcl::LBFGS<Vector2d> solver;
-    solver.gradient = [&](const Eigen::Vector2d& x, Eigen::Vector2d& g)->double
-    {
-        if (g.rows() == x.rows())
-        {
-            g[0] = 400*x[0]*x[0]*x[0] - 400*x[0]*x[1] + 2*x[0] - 2;
-            g[1] = 200*(x[1] - x[0]*x[0]);
-        }
-        double a = 1.0 - x[0];
-        double b = x[1] - x[0]*x[0];
-        return a*a + b*b*100.0;
-    };
-    
-    Vector2d x = Vector2d::Random();
-    std::cout << "x init: " << x.transpose() << std::endl;
-    double obj = solver.minimize(x);
-    std::cout << "obj: " << obj << ", x: " << x.transpose() << std::endl;
-    return EXIT_SUCCESS;
-}
-
-int test_beam()
+int test_mesh_deform()
 {
     typedef Matrix<double,Dynamic,Dynamic,RowMajor> RowMatrixXd;
     typedef Matrix<int,Dynamic,Dynamic,RowMajor> RowMatrixXi;
@@ -55,11 +32,10 @@ int test_beam()
     // Load mesh
     {
         MatrixXd inV;
-        MatrixXi inT, inF;
-        VectorXi inTT, inFT;
-        if (!igl::readMSH(MCLGEOM_ROOT_DIR "/test/bunny32k.msh", inV, inF, inT, inFT, inTT))
+        MatrixXi inT;
+        if (!mcl::read_ele_node(MCLGEOM_ROOT_DIR "/test/armadillo_3k", inV, inT))
         {
-            std::cout << "Failed to load " << MCLGEOM_ROOT_DIR "/test/bunny32k.msh" << std::endl;
+            std::cout << "Failed to load " << MCLGEOM_ROOT_DIR "/test/armadillo_3k" << std::endl;
             return EXIT_FAILURE;
         }
 
