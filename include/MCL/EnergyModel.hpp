@@ -300,21 +300,20 @@ SymmDirichlet<DIM, T>::hessian(const VecD& x, MatD& H)
 template<int DIM, typename T>
 class EnergyModel
 {
-protected:
+  protected:
     typedef Eigen::Matrix<T, DIM, 1> VecD;
     typedef Eigen::Matrix<T, DIM, DIM> MatD;
 
-public:
-
+  public:
     // Should consider a more efficient way to handle spline model.
     // It's an object instead of a static class to allow custom splines to
     // be used XuSplineModel. So for now declare known ones as objects.
-    const Lame<T> &lame;
+    const Lame<T>& lame;
     const XuNeoHookean<T> xu_nh;
     const XuStVK<T> xu_stvk;
     const XuCoRotated<T> xu_cr;
 
-    EnergyModel(const Lame<T> &lame_)
+    EnergyModel(const Lame<T>& lame_)
         : lame(lame_)
         , xu_nh(lame_.mu(), lame_.lambda(), 0.1)
         , xu_stvk(lame_.mu(), lame_.lambda(), 0.1)
@@ -325,8 +324,7 @@ public:
     T energy_density(const VecD& x)
     {
         T e = std::numeric_limits<T>::max();
-        switch(lame.model())
-        {
+        switch (lame.model()) {
             case ENERGY_MODEL_STABLE_NH: {
                 e = StableNeoHookean<DIM, T>::energy_density(lame, x);
             } break;
@@ -334,18 +332,19 @@ public:
                 e = SymmDirichlet<DIM, T>::energy_density(x);
             } break;
             case ENERGY_MODEL_NH: {
-                e = IsoNeoHookean<DIM, T>::energy_density(lame, x);	
+                e = IsoNeoHookean<DIM, T>::energy_density(lame, x);
             } break;
             case ENERGY_MODEL_XUSPLINE_NH: {
-                e = XuSplineModel<DIM, T>::energy_density(&xu_nh, x);	
+                e = XuSplineModel<DIM, T>::energy_density(&xu_nh, x);
             } break;
             case ENERGY_MODEL_XUSPLINE_STVK: {
-                e = XuSplineModel<DIM, T>::energy_density(&xu_stvk, x);	
+                e = XuSplineModel<DIM, T>::energy_density(&xu_stvk, x);
             } break;
             case ENERGY_MODEL_XUSPLINE_COROTATE: {
-                e = XuSplineModel<DIM, T>::energy_density(&xu_cr, x);	
+                e = XuSplineModel<DIM, T>::energy_density(&xu_cr, x);
             } break;
-            default: break;
+            default:
+                break;
         }
         return e;
     }
@@ -353,8 +352,7 @@ public:
     T gradient(const VecD& x, VecD& g)
     {
         T e = std::numeric_limits<T>::max();
-        switch(lame.model())
-        {
+        switch (lame.model()) {
             case ENERGY_MODEL_STABLE_NH: {
                 e = StableNeoHookean<DIM, T>::gradient(lame, x, g);
             } break;
@@ -362,18 +360,19 @@ public:
                 e = SymmDirichlet<DIM, T>::gradient(x, g);
             } break;
             case ENERGY_MODEL_NH: {
-                e = IsoNeoHookean<DIM, T>::gradient(lame, x, g);	
+                e = IsoNeoHookean<DIM, T>::gradient(lame, x, g);
             } break;
             case ENERGY_MODEL_XUSPLINE_NH: {
-                e = XuSplineModel<DIM, T>::gradient(&xu_nh, x, g);	
+                e = XuSplineModel<DIM, T>::gradient(&xu_nh, x, g);
             } break;
             case ENERGY_MODEL_XUSPLINE_STVK: {
-                e = XuSplineModel<DIM, T>::gradient(&xu_stvk, x, g);	
+                e = XuSplineModel<DIM, T>::gradient(&xu_stvk, x, g);
             } break;
             case ENERGY_MODEL_XUSPLINE_COROTATE: {
                 e = XuSplineModel<DIM, T>::gradient(&xu_cr, x, g);
             } break;
-            default: break;
+            default:
+                break;
         }
         return e;
     }
@@ -381,8 +380,7 @@ public:
     void hessian(const VecD& x, MatD& H)
     {
         H.setZero();
-        switch(lame.model())
-        {
+        switch (lame.model()) {
             case ENERGY_MODEL_STABLE_NH: {
                 StableNeoHookean<DIM, T>::hessian(lame, x, H);
             } break;
@@ -390,18 +388,19 @@ public:
                 SymmDirichlet<DIM, T>::hessian(x, H);
             } break;
             case ENERGY_MODEL_NH: {
-                IsoNeoHookean<DIM, T>::hessian(lame, x, H);	
+                IsoNeoHookean<DIM, T>::hessian(lame, x, H);
             } break;
             case ENERGY_MODEL_XUSPLINE_NH: {
-                XuSplineModel<DIM, T>::hessian(&xu_nh, x, H);	
+                XuSplineModel<DIM, T>::hessian(&xu_nh, x, H);
             } break;
             case ENERGY_MODEL_XUSPLINE_STVK: {
                 XuSplineModel<DIM, T>::hessian(&xu_stvk, x, H);
             } break;
             case ENERGY_MODEL_XUSPLINE_COROTATE: {
-                XuSplineModel<DIM, T>::hessian(&xu_cr, x, H);	
+                XuSplineModel<DIM, T>::hessian(&xu_cr, x, H);
             } break;
-            default: break;
+            default:
+                break;
         }
     }
 };

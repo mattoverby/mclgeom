@@ -6,30 +6,34 @@
 
 #include <Eigen/Dense>
 #include <Eigen/SparseCholesky>
-#include <tbb/parallel_for.h>
 #include <functional>
 #include <numeric>
+#include <tbb/parallel_for.h>
 
 namespace mcl {
 
-template <typename T>
-class MultiColorGaussSeidel {
-public:
-    using RowSparseMatrix = Eigen::SparseMatrix<T,Eigen::RowMajor>;
+template<typename T>
+class MultiColorGaussSeidel
+{
+  public:
+    using RowSparseMatrix = Eigen::SparseMatrix<T, Eigen::RowMajor>;
 
     /// @brief Solver options
-    struct Options {
+    struct Options
+    {
         int max_iters = 200; ///< max solver iters
-        int check_tol = 10; ///< num iters to check tol
-        T rel_tol = (1e-8); ///< delta x tolerance
-        T omega = T(1.9); ///< relaxation parameter
+        int check_tol = 10;  ///< num iters to check tol
+        T rel_tol = (1e-8);  ///< delta x tolerance
+        T omega = T(1.9);    ///< relaxation parameter
     };
 
     /// @brief Placeholder for post-sweep projection
     struct NoOp
     {
         template<typename DerivedX>
-        void operator()(int, DerivedX&) const {}
+        void operator()(int, DerivedX&) const
+        {
+        }
     };
 
     /// @brief Solve AX=B s.t. X in C
@@ -42,13 +46,13 @@ public:
     /// @param options solver settings
     /// @return number of iterations taken by solver
     template<typename DerivedX, typename DerivedB, typename Projection = NoOp>
-    static int solve(const RowSparseMatrix &A,
-        const DerivedB& B,
-        DerivedX& X,
-        const std::vector<std::vector<int>> &colors = {},
-        const std::vector<bool> &parallel_exec = {},
-        const Projection &project = {},
-        const Options &options = Options())
+    static int solve(const RowSparseMatrix& A,
+                     const DerivedB& B,
+                     DerivedX& X,
+                     const std::vector<std::vector<int>>& colors = {},
+                     const std::vector<bool>& parallel_exec = {},
+                     const Projection& project = {},
+                     const Options& options = Options())
     {
         int cols = X.cols();
         int num_colors = colors.size();
@@ -69,26 +73,24 @@ public:
 
         int iter = 1;
         for (; iter <= options.max_iters; ++iter) {
-            for (int color=0; color<num_colors; ++color) {
+            for (int color = 0; color < num_colors; ++color) {
 
-                const auto &inds = colors.empty() ? all_inds : colors[color];
+                const auto& inds = colors.empty() ? all_inds : colors[color];
 
                 // Use serial execution if 1) no colors, 2) user-choice
-                if (colors.empty() || (color < num_parallel_exec && !parallel_exec[color]))
-                {
+                if (colors.empty() || (color < num_parallel_exec && !parallel_exec[color])) {
                     for (int ind : inds) {
                         sweep(ind, A, B, X, options);
                         project(ind, X);
                     }
                 } else {
                     tbb::parallel_for(tbb::blocked_range<int>(0, int(inds.size())),
-                        [&](const tbb::blocked_range<int>& range) {
-                            for(int i = range.begin(); i != range.end(); ++i) {
-                                sweep(inds[i], A, B, X, options);
-                                project(inds[i], X);
-                            }
-                        }
-                    );
+                                      [&](const tbb::blocked_range<int>& range) {
+                                          for (int i = range.begin(); i != range.end(); ++i) {
+                                              sweep(inds[i], A, B, X, options);
+                                              project(inds[i], X);
+                                          }
+                                      });
                 }
             }
 
@@ -96,30 +98,22 @@ public:
             if (iter % options.check_tol == 0 && converged(A, B, X, options)) {
                 break;
             }
-        } 
+        }
         return iter;
     }
 
     /// @brief Checks: ||b-Ax||/||b|| < rel_tol
     template<typename DerivedX, typename DerivedB>
-    static bool converged(
-        const RowSparseMatrix &A,
-        const DerivedB& B,
-        const DerivedX& X,
-        const Options &options)
+    static bool converged(const RowSparseMatrix& A, const DerivedB& B, const DerivedX& X, const Options& options)
     {
         T B_norm = B.norm();
         T residual = (B - A * X).norm();
-        return (residual/B_norm < options.rel_tol);
+        return (residual / B_norm < options.rel_tol);
     }
 
     /// @brief Performs an X update at specified row
     template<typename DerivedX, typename DerivedB>
-    static void sweep(int row,
-        const RowSparseMatrix &A,
-        const DerivedB& B,
-        DerivedX& X,
-        const Options &options)
+    static void sweep(int row, const RowSparseMatrix& A, const DerivedB& B, DerivedX& X, const Options& options)
     {
         T Aii = T(0);
         using RowVectorType = typename Eigen::internal::plain_row_type<DerivedX>::type;
@@ -133,8 +127,8 @@ public:
         }
         if (std::abs(Aii) > T(0)) {
             auto X0 = X.row(row);
-            auto X1 = (B.row(row) - LUx)/Aii;
-            X.row(row) = (T(1)-options.omega)*X0 + options.omega*X1;
+            auto X1 = (B.row(row) - LUx) / Aii;
+            X.row(row) = (T(1) - options.omega) * X0 + options.omega * X1;
         }
     }
 };

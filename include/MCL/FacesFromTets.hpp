@@ -117,11 +117,11 @@ get_unique_edges(const Eigen::MatrixBase<DerivedP>& P, Eigen::MatrixBase<Derived
     int P_DIM = P.cols();
     std::vector<Eigen::Vector2i> edges;
     edges.reserve(P.rows() * 2);
-    std::set<std::pair<int,int>> edges_set;
-    for (int i=0; i<P.rows(); ++i) {
-        for (int j=1; j<P.cols(); ++j) {
-            int e0 = P(i,j);
-            int e1 = P(i,(j+1)%P_DIM);
+    std::set<std::pair<int, int>> edges_set;
+    for (int i = 0; i < P.rows(); ++i) {
+        for (int j = 1; j < P.cols(); ++j) {
+            int e0 = P(i, j);
+            int e1 = P(i, (j + 1) % P_DIM);
             if (e1 > e0) {
                 std::swap(e0, e1);
             }

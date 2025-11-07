@@ -8,7 +8,7 @@
 
 namespace mcl {
 
-template <typename T>
+template<typename T>
 class Lame
 {
   public:

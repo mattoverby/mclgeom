@@ -75,7 +75,10 @@ class XuNeoHookean : public XuSpline<T>
         (void)(x);
         return 0.0;
     }
-    T ddh(T x) const { return (lambda * (T(1) - std::log(x)) + mu) / (x * x) + XuSpline<T>::dd_compress_term(kappa, x); }
+    T ddh(T x) const
+    {
+        return (lambda * (T(1) - std::log(x)) + mu) / (x * x) + XuSpline<T>::dd_compress_term(kappa, x);
+    }
 };
 
 template<typename T>
