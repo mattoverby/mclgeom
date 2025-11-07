@@ -45,6 +45,9 @@ public:
 
 	/// @brief Get colors
 	void get_colors(std::vector<std::vector<int>> &colors);
+
+    /// @brief For testing, each node its own color
+    void trivial();
 };
 
 //
@@ -57,9 +60,6 @@ GraphColor::GraphColor(size_t n)
 	int index = 0;
 	for (auto &node : graph) {
 		node.index = index++;
-		for (int i=0; i<init_palette; ++i) {
-			node.palette.emplace(i);
-		}
 	}
 }
 
@@ -91,9 +91,14 @@ void GraphColor::color()
     int max_iter = graph.size();
     for (int iter = 0; !nodeq.empty() && iter < max_iter; ++iter) {
 
-        // Assign Random Colors
+        // Assign Random Colors, initialize palette if empty
         tbb::parallel_for(size_t(0), nodeq.size(), [&](size_t i) {
             auto& node = graph[nodeq[i]];
+            if (node.palette.empty()) {
+                for (int i=0; i<init_palette; ++i) {
+                    node.palette.emplace(i);
+                }
+            }
             static thread_local std::mt19937 gen(std::random_device{}());
             std::uniform_int_distribution<> dist(0, node.palette.size() - 1);
             int offset = dist(gen);
@@ -182,6 +187,14 @@ void GraphColor::get_colors(std::vector<std::vector<int>> &colors)
         std::remove_if(colors.begin(), colors.end(),
                        [](const std::vector<int>& v) { return v.empty(); }),
         colors.end());
+}
+
+void GraphColor::trivial()
+{
+	for (auto &node : graph) {
+        node.palette.clear();
+        node.color = node.index;
+    }
 }
 
 template <typename T>

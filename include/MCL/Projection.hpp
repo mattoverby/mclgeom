@@ -9,8 +9,6 @@
 namespace mcl {
 
 // Projection on Triangle
-// I do not know the source of the function.
-// If anyone knows, please tell me!
 template<typename T>
 static inline Eigen::Matrix<T, 3, 1>
 point_on_triangle(const Eigen::Matrix<T, 3, 1>& point,
@@ -70,6 +68,8 @@ point_on_triangle(const Eigen::Matrix<T, 3, 1>& point,
                   const Eigen::Matrix<T, 3, 1>& p2,
                   const Eigen::Matrix<T, 3, 1>& p3)
 {
+    // Source: https://www.geometrictools.com/Documentation/DistancePoint3Triangle3.pdf
+
     auto clamp_zero_one = [](const T& val) { return val < 0 ? 0 : (val > 1 ? 1 : val); };
 
     Eigen::Matrix<T, 3, 1> edge0 = p2 - p1;

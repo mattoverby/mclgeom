@@ -110,10 +110,9 @@ faces_from_tets(const Eigen::MatrixBase<DerivedT>& T, Eigen::PlainObjectBase<Der
 
 // Given a mesh of tets or triangles, compute unique edges E.
 // True on success
-namespace mcl {
 template<typename DerivedP, typename DerivedE>
 static inline bool
-get_unique_edges(const Eigen::MatrixBase<DerivedP>& P, Eigen::PlainObjectBase<DerivedE>& E)
+get_unique_edges(const Eigen::MatrixBase<DerivedP>& P, Eigen::MatrixBase<DerivedE>& E)
 {
     int P_DIM = P.cols();
     std::vector<Eigen::Vector2i> edges;
@@ -141,7 +140,6 @@ get_unique_edges(const Eigen::MatrixBase<DerivedP>& P, Eigen::PlainObjectBase<De
     }
 
     return E.rows() > 0;
-}
 }
 
 } // ns mcl
