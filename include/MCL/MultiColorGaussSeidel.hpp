@@ -2,7 +2,7 @@
 // Distributed under the MIT License.
 
 #ifndef MCL_GEOM_MULTICOLORGS_HPP
-#define MCL_GEOM_MULTICOLORGS_HPP 1
+#define MCL_GEOM_MULTICOLORGS_HPP
 
 #include <Eigen/Dense>
 #include <Eigen/SparseCholesky>

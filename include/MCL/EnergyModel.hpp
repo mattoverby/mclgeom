@@ -2,7 +2,7 @@
 // Distributed under the MIT License.
 
 #ifndef MCL_GEOM_ENERGYMODEL_HPP
-#define MCL_GEOM_ENERGYMODEL_HPP 1
+#define MCL_GEOM_ENERGYMODEL_HPP
 
 #include "Lame.hpp"
 #include "XuSpline.hpp"
