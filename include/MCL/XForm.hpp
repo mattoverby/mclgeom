@@ -197,24 +197,27 @@ class XForm
     }
 
     // Multiply every row (vertex) by the xform
-    // Works for 2D or 3D (cols)
+    // Works for 2D or 3D (cols) 
     template<typename DerivedV>
     void apply(Eigen::MatrixBase<DerivedV>& V)
     {
         int nv = V.rows();
         int nc = V.cols();
         Eigen::Transform<T, 3, Eigen::Affine> r(data);
-        if (nc == 3) {
+        
+        // Special case if cols = 3
+        if constexpr (Eigen::MatrixBase<DerivedV>::ColsAtCompileTime == 3) {
             V = (r * V.transpose()).transpose();
             return;
         }
-        // If 2D, pad with zero to apply. Not sure if this is faster than loop...
-        else if (nc == 2) {
-            Eigen::Matrix<T, Eigen::Dynamic, 3> V2(V.rows(), 3);
-            V2.col(2).setZero();
-            V2.leftCols(2) == V.leftCols(2);
-            V2 = (r * V2.transpose()).transpose();
-            V.leftCols(2) = V2.leftCols(2);
+
+        // If 2D, pad with zero to apply.
+        // Not efficient to use a loop like this...
+        for (int i=0; i < nv; ++i) {
+            Eigen::Vector3<T> vi(0,0,0);
+            vi.template head(nc) = V.row(i);
+            vi = r * vi;
+            V.row(i) = vi.template head(nc);
         }
     }
 };

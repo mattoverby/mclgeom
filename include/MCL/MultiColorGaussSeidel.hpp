@@ -54,7 +54,6 @@ class MultiColorGaussSeidel
                      const Projection& project = {},
                      const Options& options = Options())
     {
-        int cols = X.cols();
         int num_colors = colors.size();
         int num_parallel_exec = parallel_exec.size();
 
