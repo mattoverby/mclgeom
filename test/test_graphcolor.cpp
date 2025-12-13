@@ -94,21 +94,19 @@ graph_color_mesh()
         }
     };
 
-    std::cout << "colors: " << vertex_colors.size() << ", " << vertex_colors_A.size() << std::endl;
     check_colors(vertex_colors);
     check_colors(vertex_colors_A);
 
-    for (int i=0; i<(int)vertex_colors.size(); ++i)
-    {
-        std::cout << i << ": " << vertex_colors.size() << std::endl;
-    }
-
     // Combine small colors
-    mcl::combine_small_colors(10, vertex_colors);
+    size_t min_color_size = 200;
+    size_t prev_num_colors = vertex_colors.size();
+    mcl::combine_small_colors(min_color_size, vertex_colors);
+    mclAssert(vertex_colors.size() < prev_num_colors);
 
-    for (int i=0; i<(int)vertex_colors.size(); ++i)
-    {
-        std::cout << i << ": " << vertex_colors.size() << std::endl;
+    // All colors smaller than min_color_size should be combined into
+    // one color. That color might be less than the min size.
+    for (int i=0; i<int(vertex_colors.size() - 1); ++i) {
+        mclAssert(vertex_colors[i].size() > min_color_size);
     }
 
     return EXIT_SUCCESS;

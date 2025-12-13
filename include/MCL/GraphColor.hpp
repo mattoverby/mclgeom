@@ -12,6 +12,8 @@
 #include <tbb/parallel_for.h>
 #include <unordered_set>
 
+#include <iostream>
+
 namespace mcl {
 
 /// @brief Stochastic graph coloring from:
