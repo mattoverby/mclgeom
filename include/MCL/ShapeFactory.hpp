@@ -27,10 +27,14 @@ make_tri_box(const Eigen::Vector3<T>& bmin, const Eigen::Vector3<T>& bmax, Deriv
 
 template<typename T, typename DerivedV, typename DerivedF>
 static inline void
-make_quad(const Eigen::Vector2<T>& bottom_left, const Eigen::Vector2<T>& upper_right, int tessellation, DerivedV& V, DerivedF& F)
+make_quad(const Eigen::Vector2<T>& bottom_left,
+          const Eigen::Vector2<T>& upper_right,
+          int tessellation,
+          DerivedV& V,
+          DerivedF& F)
 {
     V.resize((tessellation + 1) * (tessellation + 1), 3);
-    F.resize(tessellation * tessellation * 2, 3);    
+    F.resize(tessellation * tessellation * 2, 3);
     Eigen::Vector2<T> size = upper_right - bottom_left;
     Eigen::Vector2<T> step = size / static_cast<T>(tessellation);
 
@@ -43,9 +47,7 @@ make_quad(const Eigen::Vector2<T>& bottom_left, const Eigen::Vector2<T>& upper_r
         }
     }
 
-    auto idx = [tessellation](int i, int j) {
-        return j * (tessellation + 1) + i;
-    };
+    auto idx = [tessellation](int i, int j) { return j * (tessellation + 1) + i; };
 
     // Generate faces (two triangles per quad)
     int face_count = 0;

@@ -105,7 +105,7 @@ graph_color_mesh()
 
     // All colors smaller than min_color_size should be combined into
     // one color. That color might be less than the min size.
-    for (int i=0; i<int(vertex_colors.size() - 1); ++i) {
+    for (int i = 0; i < int(vertex_colors.size() - 1); ++i) {
         mclAssert(vertex_colors[i].size() > min_color_size);
     }
 
