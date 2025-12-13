@@ -23,4 +23,5 @@ target_include_directories(${PROJECT_NAME} INTERFACE
 add_library(mcl::geom ALIAS ${PROJECT_NAME})
 
 # testing
+add_definitions(-DMCLGEOM_ROOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 add_subdirectory(test)

@@ -20,6 +20,11 @@ template<typename T>
 inline void
 graph_color(const Eigen::SparseMatrix<T>& adjacency, std::vector<std::vector<int>>& colors);
 
+/// @brief Sorts and combine colors smaller than a certain size.
+/// The combined color will be added to end regardless of size.
+/// @return True if any colors were combined
+bool combine_small_colors(size_t min_size, std::vector<std::vector<int>>& colors);
+
 class GraphColor
 {
   public:
@@ -220,6 +225,34 @@ graph_color(const Eigen::SparseMatrix<T>& adjacency, std::vector<std::vector<int
 
     gc.color();
     gc.get_colors(colors);
+}
+
+bool combine_small_colors(size_t min_size, std::vector<std::vector<int>>& colors)
+{
+    if (colors.empty()) {
+        return false;
+    }
+
+    std::sort(colors.begin(), colors.end(), [](const std::vector<int>& a, const std::vector<int>& b) {
+        return a.size() > b.size();
+    });
+
+    std::vector<int> combined_color;
+    combined_color.reserve(min_size * 2);
+
+    // Loop from the back, combinding and deleting as we go
+    while(!colors.empty()) {
+        const std::vector<int> &color = colors.back();
+        if (color.size() <= min_size) {
+            combined_color.insert(combined_color.end(), color.begin(), color.end());
+            colors.pop_back();
+        } else {
+            break;
+        }
+    }
+
+    colors.emplace_back(combined_color);
+    return !combined_color.empty();
 }
 
 } // end namespace mcl

@@ -1,9 +1,6 @@
 # Copyright Matt Overby 2021.
 # Distributed under the MIT License.
 
-# Set define for loading meshes
-add_definitions(-DMCLGEOM_ROOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../")
-
 # Build visual/rendering examples
 if (MCLGEOM_EXAMPLES)
 

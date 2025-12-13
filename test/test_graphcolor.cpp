@@ -98,5 +98,18 @@ graph_color_mesh()
     check_colors(vertex_colors);
     check_colors(vertex_colors_A);
 
+    for (int i=0; i<(int)vertex_colors.size(); ++i)
+    {
+        std::cout << i << ": " << vertex_colors.size() << std::endl;
+    }
+
+    // Combine small colors
+    mcl::combine_small_colors(10, vertex_colors);
+
+    for (int i=0; i<(int)vertex_colors.size(); ++i)
+    {
+        std::cout << i << ": " << vertex_colors.size() << std::endl;
+    }
+
     return EXIT_SUCCESS;
 }
