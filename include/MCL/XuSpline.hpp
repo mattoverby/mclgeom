@@ -1,8 +1,9 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
 
-#ifndef MCL_XUSPLINE_HPP
-#define MCL_XUSPLINE_HPP 1
+#ifndef MCL_GEOM_XUSPLINE_HPP
+#define MCL_GEOM_XUSPLINE_HPP 1
+
 #include <cmath>
 
 namespace mcl {
@@ -74,7 +75,10 @@ class XuNeoHookean : public XuSpline<T>
         (void)(x);
         return 0.0;
     }
-    T ddh(T x) const { return (lambda * (T(1) - std::log(x)) + mu) / (x * x) + XuSpline<T>::dd_compress_term(kappa, x); }
+    T ddh(T x) const
+    {
+        return (lambda * (T(1) - std::log(x)) + mu) / (x * x) + XuSpline<T>::dd_compress_term(kappa, x);
+    }
 };
 
 template<typename T>

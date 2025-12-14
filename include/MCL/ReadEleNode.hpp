@@ -1,10 +1,10 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
 
-#ifndef MCL_READELENODE_HPP
-#define MCL_READELENODE_HPP 1
+#ifndef MCL_GEOM_READELENODE_HPP
+#define MCL_GEOM_READELENODE_HPP 1
 
-#include <Eigen/Core>
+#include <Eigen/Dense>
 #include <fstream>
 #include <vector>
 

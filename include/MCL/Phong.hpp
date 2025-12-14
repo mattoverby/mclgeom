@@ -1,60 +1,41 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
 
-#ifndef MCL_PHONG_HPP
-#define MCL_PHONG_HPP 1
+#ifndef MCL_GEOM_PHONG_HPP
+#define MCL_GEOM_PHONG_HPP 1
 
-#include <Eigen/Core>
+#include <Eigen/Dense>
 
 namespace mcl {
 
 class Phong
 {
   public:
-    enum // presets
-    {
-        Emerald,
-        Jade,
-        Obsidian,
-        Pearl,
-        Ruby,
-        Turquoise, // gems
-        Brass,
-        Bronze,
-        Chrome,
-        Copper,
-        Gold,
-        Silver,
-        Gunmetal, // metals
-        BlackPlastic,
-        CyanPlastic,
-        GreenPlastic,
-        RedPlastic,
-        WhitePlastic,
-        YellowPlastic, // plastic
-        BlackRubber,
-        CyanRubber,
-        GreenRubber,
-        RedRubber,
-        WhiteRubber,
-        YellowRubber, // rubber
-        Cloth,
-        Unknown
-    };
-
     Eigen::Vector3f amb, diff, spec;
-    float shini; // In constructor, use a value from 0 to 1.
+    float shini; // 0–128
 
-    // These should be typedef'd instead of a creation function.
-    static inline Phong get(int preset);
-
-    Phong(Eigen::Vector3f amb_, Eigen::Vector3f diff_, Eigen::Vector3f spec_, float shini_)
+    Phong(const Eigen::Vector3f& amb_, const Eigen::Vector3f& diff_, const Eigen::Vector3f& spec_, float shini_)
         : amb(amb_)
         , diff(diff_)
         , spec(spec_)
-        , shini(shini_ * 128.f)
+        , shini(shini_)
     {
     }
+
+    // Hack to use presets from:
+    // https://people.eecs.ku.edu/~jrmiller/Courses/672/InClass/3DLighting/MaterialProperties.html
+    Phong(const Eigen::Vector2f& scale,
+          const Eigen::Vector3f& amb_,
+          const Eigen::Vector3f& diff_,
+          const Eigen::Vector3f& spec_,
+          float shini_)
+        : amb(amb_ * scale[0])
+        , diff(diff_)
+        , spec(spec_)
+        , shini(shini_ * scale[1])
+    {
+    }
+
     Phong()
         : amb(1, 0, 0)
         , diff(1, 0, 0)
@@ -62,148 +43,146 @@ class Phong
         , shini(32.f)
     {
     }
+
+    // Gemstones
+    static const Phong Emerald;
+    static const Phong Jade;
+    static const Phong Obsidian;
+    static const Phong Pearl;
+    static const Phong Ruby;
+    static const Phong Turquoise;
+
+    // Metals
+    static const Phong Brass;
+    static const Phong Bronze;
+    static const Phong Chrome;
+    static const Phong Copper;
+    static const Phong Gold;
+    static const Phong Silver;
+    static const Phong Gunmetal;
+
+    // Plastics
+    static const Phong BlackPlastic;
+    static const Phong CyanPlastic;
+    static const Phong GreenPlastic;
+    static const Phong RedPlastic;
+    static const Phong WhitePlastic;
+    static const Phong YellowPlastic;
+
+    // Rubbers
+    static const Phong BlackRubber;
+    static const Phong CyanRubber;
+    static const Phong GreenRubber;
+    static const Phong RedRubber;
+    static const Phong WhiteRubber;
+    static const Phong YellowRubber;
+
+    // Misc
+    static const Phong Cloth;
 };
 
-inline Phong
-Phong::get(int m)
-{
-    using namespace Eigen;
-    Phong r;
-    switch (m) {
+// ---------------------------------------------
+//  Definitions of all static constants
+// ---------------------------------------------
 
-        // Gemstones
-        case Phong::Emerald:
-            r = Phong(Vector3f(0.0215, 0.1745, 0.0215),
-                      Vector3f(0.07568, 0.61424, 0.07568),
-                      Vector3f(0.633, 0.727811, 0.633),
-                      0.6);
-            break;
-        case Phong::Jade:
-            r = Phong(Vector3f(0.135, 0.2225, 0.1575),
-                      Vector3f(0.54, 0.89, 0.63),
-                      Vector3f(0.316228, 0.316228, 0.316228),
-                      0.1);
-            break;
-        case Phong::Obsidian:
-            r = Phong(Vector3f(0.05375, 0.05, 0.06625),
-                      Vector3f(0.18275, 0.17, 0.22525),
-                      Vector3f(0.332741, 0.328634, 0.346435),
-                      0.3);
-            break;
-        case Phong::Pearl:
-            r = Phong(Vector3f(0.25, 0.20725, 0.20725),
-                      Vector3f(1.0, 0.829, 0.829),
-                      Vector3f(0.296648, 0.296648, 0.296648),
-                      0.088);
-            break;
-        case Phong::Ruby:
-            r = Phong(Vector3f(0.1745, 0.01175, 0.01175),
-                      Vector3f(0.61424, 0.04136, 0.04136),
-                      Vector3f(0.727811, 0.626959, 0.626959),
-                      0.6);
-            break;
-        case Phong::Turquoise:
-            r = Phong(Vector3f(0.1, 0.18725, 0.1745),
-                      Vector3f(0.396, 0.74151, 0.69102),
-                      Vector3f(0.297254, 0.30829, 0.306678),
-                      0.1);
-            break;
+// Gemstones
+inline const Phong Phong::Emerald = Phong({ 0.2f, 128.f },
+                                          { 0.0215f, 0.1745f, 0.0215f },
+                                          { 0.07568f, 0.61424f, 0.07568f },
+                                          { 0.633f, 0.727811f, 0.633f },
+                                          0.6f);
+inline const Phong Phong::Jade = Phong({ 0.2f, 128.f },
+                                       { 0.135f, 0.2225f, 0.1575f },
+                                       { 0.54f, 0.89f, 0.63f },
+                                       { 0.316228f, 0.316228f, 0.316228f },
+                                       0.1f);
+inline const Phong Phong::Obsidian = Phong({ 0.2f, 128.f },
+                                           { 0.05375f, 0.05f, 0.06625f },
+                                           { 0.18275f, 0.17f, 0.22525f },
+                                           { 0.332741f, 0.328634f, 0.346435f },
+                                           0.3f);
+inline const Phong Phong::Pearl = Phong({ 0.2f, 128.f },
+                                        { 0.25f, 0.20725f, 0.20725f },
+                                        { 1.0f, 0.829f, 0.829f },
+                                        { 0.296648f, 0.296648f, 0.296648f },
+                                        0.088f);
+inline const Phong Phong::Ruby = Phong({ 0.2f, 128.f },
+                                       { 0.1745f, 0.01175f, 0.01175f },
+                                       { 0.61424f, 0.04136f, 0.04136f },
+                                       { 0.727811f, 0.626959f, 0.626959f },
+                                       0.6f);
+inline const Phong Phong::Turquoise = Phong({ 0.2f, 128.f },
+                                            { 0.1f, 0.18725f, 0.1745f },
+                                            { 0.396f, 0.74151f, 0.69102f },
+                                            { 0.297254f, 0.30829f, 0.306678f },
+                                            0.1f);
 
-        // Metals
-        case Phong::Brass:
-            r = Phong(Vector3f(0.329412, 0.223529, 0.027451),
-                      Vector3f(0.780392, 0.568627, 0.113725),
-                      Vector3f(0.992157, 0.941176, 0.807843),
-                      0.21794872);
-            break;
-        case Phong::Bronze:
-            r = Phong(Vector3f(0.2125, 0.1275, 0.054),
-                      Vector3f(0.714, 0.4284, 0.18144),
-                      Vector3f(0.393548, 0.271906, 0.166721),
-                      0.2);
-            break;
-        case Phong::Chrome:
-            r = Phong(Vector3f(0.25, 0.25, 0.25), Vector3f(0.4, 0.4, 0.4), Vector3f(0.774597, 0.774597, 0.774597), 0.6);
-            break;
-        case Phong::Copper:
-            r = Phong(Vector3f(0.19125, 0.0735, 0.0225),
-                      Vector3f(0.7038, 0.27048, 0.0828),
-                      Vector3f(0.256777, 0.137622, 0.086014),
-                      0.6);
-            break;
-        case Phong::Gold:
-            r = Phong(Vector3f(0.24725, 0.1995, 0.0745),
-                      Vector3f(0.75164, 0.60648, 0.22648),
-                      Vector3f(0.628281, 0.555802, 0.366065),
-                      0.4);
-            break;
-        case Phong::Silver:
-            r = Phong(Vector3f(0.19225, 0.19225, 0.19225),
-                      Vector3f(0.50754, 0.50754, 0.50754),
-                      Vector3f(0.508273, 0.508273, 0.508273),
-                      0.4);
-            break;
-        case Phong::Gunmetal: // I made this one up
-            r = Phong(Vector3f(0.1, 0.1, 0.1), Vector3f(0.4, 0.4, 0.4), Vector3f(0.1, 0.1, 0.1), 0.1);
-            break;
+// Metals
+inline const Phong Phong::Brass = Phong({ 0.2f, 128.f },
+                                        { 0.329412f, 0.223529f, 0.027451f },
+                                        { 0.780392f, 0.568627f, 0.113725f },
+                                        { 0.992157f, 0.941176f, 0.807843f },
+                                        0.21794872f);
+inline const Phong Phong::Bronze = Phong({ 0.2f, 128.f },
+                                         { 0.2125f, 0.1275f, 0.054f },
+                                         { 0.714f, 0.4284f, 0.18144f },
+                                         { 0.393548f, 0.271906f, 0.166721f },
+                                         0.2f);
+inline const Phong Phong::Chrome =
+    Phong({ 0.2f, 128.f }, { 0.25f, 0.25f, 0.25f }, { 0.4f, 0.4f, 0.4f }, { 0.774597f, 0.774597f, 0.774597f }, 0.6f);
+inline const Phong Phong::Copper = Phong({ 0.2f, 128.f },
+                                         { 0.19125f, 0.0735f, 0.0225f },
+                                         { 0.7038f, 0.27048f, 0.0828f },
+                                         { 0.256777f, 0.137622f, 0.086014f },
+                                         0.6f);
+inline const Phong Phong::Gold = Phong({ 0.2f, 128.f },
+                                       { 0.24725f, 0.1995f, 0.0745f },
+                                       { 0.75164f, 0.60648f, 0.22648f },
+                                       { 0.628281f, 0.555802f, 0.366065f },
+                                       0.4f);
+inline const Phong Phong::Silver = Phong({ 0.2f, 128.f },
+                                         { 0.19225f, 0.19225f, 0.19225f },
+                                         { 0.50754f, 0.50754f, 0.50754f },
+                                         { 0.508273f, 0.508273f, 0.508273f },
+                                         0.4f);
+inline const Phong Phong::Gunmetal =
+    Phong({ 0.2f, 128.f }, { 0.1f, 0.1f, 0.1f }, { 0.4f, 0.4f, 0.4f }, { 0.1f, 0.1f, 0.1f }, 0.1f);
 
-        // Plastics
-        case Phong::BlackPlastic:
-            r = Phong(Vector3f(0.0, 0.0, 0.0), Vector3f(0.01, 0.01, 0.01), Vector3f(0.50, 0.50, 0.50), 0.25);
-            break;
-        case Phong::CyanPlastic:
-            r = Phong(Vector3f(0.0, 0.1, 0.06),
-                      Vector3f(0.0, 0.50980392, 0.50980392),
-                      Vector3f(0.50196078, 0.50196078, 0.50196078),
-                      0.25);
-            break;
-        case Phong::GreenPlastic:
-            r = Phong(Vector3f(0.0, 0.0, 0.0), Vector3f(0.1, 0.35, 0.1), Vector3f(0.45, 0.55, 0.45), 0.25);
-            break;
-        case Phong::RedPlastic:
-            r = Phong(Vector3f(0.0, 0.0, 0.0), Vector3f(0.5, 0.0, 0.0), Vector3f(0.7, 0.6, 0.6), 0.25);
-            break;
-        case Phong::WhitePlastic:
-            r = Phong(Vector3f(0.0, 0.0, 0.0), Vector3f(0.55, 0.55, 0.55), Vector3f(0.70, 0.70, 0.70), 0.25);
-            break;
-        case Phong::YellowPlastic:
-            r = Phong(Vector3f(0.0, 0.0, 0.0), Vector3f(0.5, 0.5, 0.0), Vector3f(0.60, 0.60, 0.50), 0.25);
-            break;
+// Plastics
+inline const Phong Phong::BlackPlastic =
+    Phong({ 0.2f, 128.f }, { 0.0f, 0.0f, 0.0f }, { 0.01f, 0.01f, 0.01f }, { 0.50f, 0.50f, 0.50f }, 0.25f);
+inline const Phong Phong::CyanPlastic = Phong({ 0.2f, 128.f },
+                                              { 0.0f, 0.1f, 0.06f },
+                                              { 0.0f, 0.50980392f, 0.50980392f },
+                                              { 0.50196078f, 0.50196078f, 0.50196078f },
+                                              0.25f);
+inline const Phong Phong::GreenPlastic =
+    Phong({ 0.2f, 128.f }, { 0.0f, 0.0f, 0.0f }, { 0.1f, 0.35f, 0.1f }, { 0.45f, 0.55f, 0.45f }, 0.25f);
+inline const Phong Phong::RedPlastic =
+    Phong({ 0.2f, 128.f }, { 0.0f, 0.0f, 0.0f }, { 0.5f, 0.0f, 0.0f }, { 0.7f, 0.6f, 0.6f }, 0.25f);
+inline const Phong Phong::WhitePlastic =
+    Phong({ 0.2f, 128.f }, { 0.0f, 0.0f, 0.0f }, { 0.55f, 0.55f, 0.55f }, { 0.70f, 0.70f, 0.70f }, 0.25f);
+inline const Phong Phong::YellowPlastic =
+    Phong({ 0.2f, 128.f }, { 0.0f, 0.0f, 0.0f }, { 0.5f, 0.5f, 0.0f }, { 0.60f, 0.60f, 0.50f }, 0.25f);
 
-        // Rubbers
-        case Phong::BlackRubber:
-            r = Phong(Vector3f(0.02, 0.02, 0.02), Vector3f(0.01, 0.01, 0.01), Vector3f(0.4, 0.4, 0.4), 0.078125);
-            break;
-        case Phong::CyanRubber:
-            r = Phong(Vector3f(0.0, 0.05, 0.05), Vector3f(0.4, 0.5, 0.5), Vector3f(0.04, 0.7, 0.7), 0.078125);
-            break;
-        case Phong::GreenRubber:
-            r = Phong(Vector3f(0.0, 0.05, 0.0), Vector3f(0.4, 0.5, 0.4), Vector3f(0.04, 0.7, 0.04), 0.078125);
-            break;
-        case Phong::RedRubber:
-            r = Phong(Vector3f(0.05, 0.0, 0.0), Vector3f(0.5, 0.4, 0.4), Vector3f(0.7, 0.04, 0.04), 0.078125);
-            break;
-        case Phong::WhiteRubber:
-            r = Phong(Vector3f(0.05, 0.05, 0.05), Vector3f(0.5, 0.5, 0.5), Vector3f(0.7, 0.7, 0.7), 0.078125);
-            break;
-        case Phong::YellowRubber:
-            r = Phong(Vector3f(0.05, 0.05, 0.0), Vector3f(0.5, 0.5, 0.4), Vector3f(0.7, 0.7, 0.04), 0.078125);
-            break;
-        case Phong::Cloth:
-            r = Phong(Vector3f(0.25, 0.20725, 0.20725), Vector3f(1.0, 0.829, 0.829), Vector3f(0., 0., 0.), 0.088);
-            break;
+// Rubbers
+inline const Phong Phong::BlackRubber =
+    Phong({ 0.2f, 128.f }, { 0.02f, 0.02f, 0.02f }, { 0.01f, 0.01f, 0.01f }, { 0.4f, 0.4f, 0.4f }, 0.078125f);
+inline const Phong Phong::CyanRubber =
+    Phong({ 0.2f, 128.f }, { 0.0f, 0.05f, 0.05f }, { 0.4f, 0.5f, 0.5f }, { 0.04f, 0.7f, 0.7f }, 0.078125f);
+inline const Phong Phong::GreenRubber =
+    Phong({ 0.2f, 128.f }, { 0.0f, 0.05f, 0.0f }, { 0.4f, 0.5f, 0.4f }, { 0.04f, 0.7f, 0.04f }, 0.078125f);
+inline const Phong Phong::RedRubber =
+    Phong({ 0.2f, 128.f }, { 0.05f, 0.0f, 0.0f }, { 0.5f, 0.4f, 0.4f }, { 0.7f, 0.04f, 0.04f }, 0.078125f);
+inline const Phong Phong::WhiteRubber =
+    Phong({ 0.2f, 128.f }, { 0.05f, 0.05f, 0.05f }, { 0.5f, 0.5f, 0.5f }, { 0.7f, 0.7f, 0.7f }, 0.078125f);
+inline const Phong Phong::YellowRubber =
+    Phong({ 0.2f, 128.f }, { 0.05f, 0.05f, 0.0f }, { 0.5f, 0.5f, 0.4f }, { 0.7f, 0.7f, 0.04f }, 0.078125f);
 
-        default:
-            break;
+// Misc
+inline const Phong Phong::Cloth =
+    Phong({ 0.2f, 128.f }, { 0.25f, 0.20725f, 0.20725f }, { 1.0f, 0.829f, 0.829f }, { 0.f, 0.f, 0.f }, 0.088f);
 
-    } // end switch preset
-
-    // Apply some ambient dampening
-    r.amb *= 0.2f;
-    return r;
-
-} // end presets
-
-} // end namespace mcl
+} // namespace mcl
 
 #endif

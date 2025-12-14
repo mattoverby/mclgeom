@@ -1,10 +1,11 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
 
-#ifndef MCL_XFORM_HPP
-#define MCL_XFORM_HPP 1
+#ifndef MCL_GEOM_XFORM_HPP
+#define MCL_GEOM_XFORM_HPP 1
 
 #include <Eigen/Geometry>
+#include <sstream>
 
 namespace mcl {
 
@@ -203,15 +204,20 @@ class XForm
         int nv = V.rows();
         int nc = V.cols();
         Eigen::Transform<T, 3, Eigen::Affine> r(data);
+
+        // Special case if cols = 3
+        if constexpr (Eigen::MatrixBase<DerivedV>::ColsAtCompileTime == 3) {
+            V = (r * V.transpose()).transpose();
+            return;
+        }
+
+        // If 2D, pad with zero to apply.
+        // Not efficient to use a loop like this...
         for (int i = 0; i < nv; ++i) {
-            Vec3<T> vi = Vec3<T>::Zero();
-            for (int j = 0; j < nc; ++j) {
-                vi[j] = V(i, j);
-            }
+            Eigen::Vector3<T> vi(0, 0, 0);
+            vi.template head(nc) = V.row(i);
             vi = r * vi;
-            for (int j = 0; j < nc; ++j) {
-                V(i, j) = vi[j];
-            }
+            V.row(i) = vi.template head(nc);
         }
     }
 };
@@ -225,6 +231,6 @@ operator*(const XForm<T>& xf1, const XForm<T>& xf2)
     return xf;
 }
 
-} // ns mcl
+} // namespace mcl
 
 #endif
