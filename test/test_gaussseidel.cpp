@@ -1,30 +1,74 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
+#include <iostream>
 
-#include <Eigen/Sparse>
 #include <MCL/AssertHandler.hpp>
 #include <MCL/GraphColor.hpp>
-#include <MCL/ReadEleNode.hpp>
-#include <MCL/MicroTimer.hpp>
+#include <MCL/MultiColorGaussSeidel.hpp>
 
-#include <iostream>
-#include <unordered_map>
+#include <Eigen/Sparse>
+#include <Eigen/SparseCholesky>
+#include <random>
 #include <vector>
 
+using RowSparseMatrix = Eigen::SparseMatrix<double, Eigen::RowMajor>;
+using RowMatrixXd = Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>;
+
 int
-graph_color_mesh();
+gauss_seidel_no_colors();
+
+int
+gauss_seidel_colors();
 
 int
 main(int argc, char* argv[])
 {
     (void)(argc);
     (void)(argv);
-    return graph_color_mesh();
+    int result_1 = gauss_seidel_no_colors();
+    int result_2 = gauss_seidel_colors();
+    return (result_1 == EXIT_SUCCESS && result_2 == EXIT_SUCCESS);
 }
 
+std::pair<RowSparseMatrix, RowMatrixXd> generate_linear_system(int n);
+
 int
-graph_color_mesh()
+gauss_seidel_no_colors()
 {
+    int n = 10;
+    auto [A, B] = generate_linear_system(n);
+
+    // Solution
+    Eigen::SimplicialLDLT<RowSparseMatrix> solver;
+    solver.compute(A);
+    mclAssert(solver.info() == Eigen::Success);
+    RowMatrixXd X0 = solver.solve(B);
+    mclAssert(X0.allFinite());
+
+    // Test with Gauss Seidel solver.
+    RowMatrixXd X;
+    mcl::MultiColorGaussSeidel<RowMatrixXd> mcgs;
+    mcgs.options.check_tol = 1; // check every iteration
+    int iters = mcgs.solve(A, B, X);
+    mclAssert(X.allFinite());
+    mclAssert((X0 - X).lpNorm<Eigen::Infinity>() < 1e-6);
+
+    // Starting closer to solution converges faster.
+    RowMatrixXd X2 = X * 0.5;
+    int iters2 = mcgs.solve(A, B, X);
+    mclAssert(iters2 < iters);
+
+    // Test with vector instead of matrix
+    mcl::MultiColorGaussSeidel<Eigen::VectorXd> mcgs_vec;
+    Eigen::VectorXd B_vec = B.col(0);
+    Eigen::VectorXd X_vec;
+    mcgs_vec.solve(A, B_vec, X_vec);
+    mclAssert(X_vec.allFinite());
+    mclAssert((X0.col(0) - X_vec).lpNorm<Eigen::Infinity>() < 1e-6);
+
+
+
+#if 0
     using namespace Eigen;
     typedef Matrix<double, Dynamic, Dynamic, RowMajor> RowMatrixXd;
     typedef Matrix<int, Dynamic, Dynamic, RowMajor> RowMatrixXi;
@@ -115,6 +159,32 @@ graph_color_mesh()
     for (int i = 0; i < int(vertex_colors.size() - 1); ++i) {
         mclAssert(vertex_colors[i].size() > min_color_size);
     }
-
+#endif
     return EXIT_SUCCESS;
+}
+
+int
+gauss_seidel_colors()
+{
+    return EXIT_SUCCESS;
+}
+
+std::pair<RowSparseMatrix, RowMatrixXd> generate_linear_system(int n)
+{
+    // 1D Poisson problem
+    RowSparseMatrix A(n, n);
+    std::vector<Eigen::Triplet<double>> triplets;
+        for (int i = 0; i < n; ++i) {
+            triplets.emplace_back(i, i, 4.0);
+        if (i > 0) {
+            triplets.emplace_back(i, i - 1, -1.0);
+        }
+        if (i < n - 1) {
+            triplets.emplace_back(i, i + 1, -1.0);
+        }
+    }
+    A.setFromTriplets(triplets.begin(), triplets.end());
+    A.makeCompressed();
+    RowMatrixXd B = RowMatrixXd::Ones(n, 3);
+    return std::make_pair<RowSparseMatrix, RowMatrixXd>(std::move(A), std::move(B));
 }

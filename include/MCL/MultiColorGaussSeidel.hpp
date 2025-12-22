@@ -12,54 +12,85 @@
 
 namespace mcl {
 
-template<typename T>
+
+/// @brief Multi-Color Gauss-Seidel with a projection operator.
+///
+/// Implemented for our paper DOI=10.1109/TVCG.2017.2730875
+///
+/// Examples:
+///
+/// 
+template<typename MatrixType>
 class MultiColorGaussSeidel
 {
   public:
-    using RowSparseMatrix = Eigen::SparseMatrix<T, Eigen::RowMajor>;
+    using Scalar = typename MatrixType::Scalar;
+    using RowSparseMatrix = Eigen::SparseMatrix<Scalar, Eigen::RowMajor>;
 
     /// @brief Solver options
     struct Options
     {
         int max_iters = 200; ///< max solver iters
         int check_tol = 10;  ///< num iters to check tol
-        T rel_tol = (1e-8);  ///< delta x tolerance
-        T omega = T(1.9);    ///< relaxation parameter
-    };
+        Scalar rel_tol = Scalar(1e-8);  ///< delta x tolerance
+        Scalar omega = Scalar(1);    ///< relaxation parameter
+    } options;
 
-    /// @brief Placeholder for post-sweep projection
-    struct NoOp
-    {
-        template<typename DerivedX>
-        void operator()(int, DerivedX&) const
-        {
-        }
-    };
+    /// @brief Optional: Returns true if the solver should exit, default uses
+    /// ||B-AX||/||B|| < options.rel_tol. Example:
+    /// is_converged = converged(A, B, X);
+    std::function<bool(const RowSparseMatrix&, const MatrixType&, const MatrixType&)> converged;
+
+    /// @brief Optional: Post-sweep projection (e.g., constraints). Example:
+    /// project = [&](int i, MatrixXd &X){ X(i,1) = std::max(X(i,1), 0); }; // floor
+    /// Called in parallel if colors are used.
+    std::function<void(int, MatrixType&)> project;
 
     /// @brief Solve AX=B s.t. X in C
     /// @param A sparse matrix
-    /// @param B linear system rhs (row-major recommended)
-    /// @param X linear system variable (row-major recommended)
+    /// @param B linear system rhs
+    /// @param X linear system variable
     /// @param colors vertex colors for parallel execution
     /// @param parallel_exec optional flag for parallel/serial color
-    /// @param project optional post-sweep projection (e.g., constraints)
-    /// @param options solver settings
     /// @return number of iterations taken by solver
-    template<typename DerivedX, typename DerivedB, typename Projection = NoOp>
-    static int solve(const RowSparseMatrix& A,
-                     const DerivedB& B,
-                     DerivedX& X,
-                     const std::vector<std::vector<int>>& colors = {},
-                     const std::vector<bool>& parallel_exec = {},
-                     const Projection& project = {},
-                     const Options& options = Options())
+    int solve(const RowSparseMatrix& A,
+        const MatrixType& B,
+        MatrixType& X,
+        const std::vector<std::vector<int>>& colors = {},
+        const std::vector<bool>& parallel_exec = {});
+
+    /// @brief Checks: ||b-Ax||/||b|| < rel_tol
+    bool default_converged(const RowSparseMatrix& A, const MatrixType& B, const MatrixType& X);
+
+    /// @brief Performs an X update at specified row
+    void sweep(int row, const RowSparseMatrix& A, const MatrixType& B, MatrixType& X);
+};
+
+//
+// Implementation
+//
+
+    template<typename MatrixType>
+int MultiColorGaussSeidel<MatrixType>::solve(const RowSparseMatrix& A,
+        const MatrixType& B,
+        MatrixType& X,
+        const std::vector<std::vector<int>>& colors,
+        const std::vector<bool>& parallel_exec)
     {
         int num_colors = colors.size();
         int num_parallel_exec = parallel_exec.size();
 
         // Resize X to correct size if needed
         if (X.rows() != B.rows() || X.cols() != B.cols()) {
-            X = Eigen::PlainObjectBase<DerivedX>::Zero(B.rows(), B.cols());
+            X = B;
+            X.setZero();
+        }
+
+        // Set convergence check if not user-provided
+        if (converged == nullptr)
+        {
+            using namespace std::placeholders;
+            converged = std::bind(&MultiColorGaussSeidel::default_converged, this, _1, _2, _3);
         }
 
         // If no colors, serial execution
@@ -79,44 +110,47 @@ class MultiColorGaussSeidel
                 // Use serial execution if 1) no colors, 2) user-choice
                 if (colors.empty() || (color < num_parallel_exec && !parallel_exec[color])) {
                     for (int ind : inds) {
-                        sweep(ind, A, B, X, options);
-                        project(ind, X);
+                        sweep(ind, A, B, X);
+                        //if (project != nullptr) {
+                        //project(ind, X);
+                        //}
                     }
                 } else {
                     tbb::parallel_for(tbb::blocked_range<int>(0, int(inds.size())),
                                       [&](const tbb::blocked_range<int>& range) {
                                           for (int i = range.begin(); i != range.end(); ++i) {
-                                              sweep(inds[i], A, B, X, options);
-                                              project(inds[i], X);
+                                              sweep(inds[i], A, B, X);
+                                            if (project != nullptr) {
+                                                project(inds[i], X);
+                                            }
                                           }
                                       });
                 }
             }
 
             // Check if converged
-            if (iter % options.check_tol == 0 && converged(A, B, X, options)) {
+            if (iter % options.check_tol == 0 && converged(A, B, X)) {
                 break;
             }
         }
         return iter;
     }
 
-    /// @brief Checks: ||b-Ax||/||b|| < rel_tol
-    template<typename DerivedX, typename DerivedB>
-    static bool converged(const RowSparseMatrix& A, const DerivedB& B, const DerivedX& X, const Options& options)
+        template<typename MatrixType>
+bool MultiColorGaussSeidel<MatrixType>::default_converged(const RowSparseMatrix& A, const MatrixType& B, const MatrixType& X)
     {
-        T B_norm = B.norm();
-        T residual = (B - A * X).norm();
+        Scalar B_norm = B.norm();
+        Scalar residual = (B - A * X).norm();
         return (residual / B_norm < options.rel_tol);
     }
 
-    /// @brief Performs an X update at specified row
-    template<typename DerivedX, typename DerivedB>
-    static void sweep(int row, const RowSparseMatrix& A, const DerivedB& B, DerivedX& X, const Options& options)
+    template<typename MatrixType>
+void MultiColorGaussSeidel<MatrixType>::sweep(int row, const RowSparseMatrix& A, const MatrixType& B, MatrixType& X)
     {
-        T Aii = T(0);
-        using RowVectorType = typename Eigen::internal::plain_row_type<DerivedX>::type;
-        RowVectorType LUx = RowVectorType::Zero();
+        Scalar Aii = Scalar(0);
+        auto LUx = X.row(row); // is there a better way to derive row type?
+        LUx.setZero();
+
         for (typename RowSparseMatrix::InnerIterator iter(A, row); iter; ++iter) {
             if (iter.col() == row) {
                 Aii = iter.value();
@@ -124,13 +158,12 @@ class MultiColorGaussSeidel
                 LUx += iter.value() * X.row(iter.col());
             }
         }
-        if (std::abs(Aii) > T(0)) {
+        if (std::abs(Aii) > Scalar(0)) {
             auto X0 = X.row(row);
             auto X1 = (B.row(row) - LUx) / Aii;
-            X.row(row) = (T(1) - options.omega) * X0 + options.omega * X1;
+            X.row(row) = (Scalar(1) - options.omega) * X0 + options.omega * X1;
         }
     }
-};
 
 } // end namespace mcl
 
