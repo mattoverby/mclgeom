@@ -15,8 +15,8 @@
 //
 // Assumes OpenGL extensions already included
 //
-#ifndef MCL_SHADER_HPP
-#define MCL_SHADER_HPP 1
+#ifndef MCL_GEOM_SHADER_HPP
+#define MCL_GEOM_SHADER_HPP 1
 
 #include <fstream>
 #include <sstream>
@@ -28,6 +28,8 @@ namespace mcl {
 class Shader
 {
   public:
+    using uint_type = GLuint;
+
     Shader()
         : program_id(0)
     {
@@ -50,24 +52,24 @@ class Shader
     void enable();
 
     // Returns the bound location of a named attribute
-    GLuint attribute(const std::string& name);
+    uint_type attribute(const std::string& name);
 
     // Returns the bound location of a named uniform
-    GLuint uniform(const std::string& name);
+    uint_type uniform(const std::string& name);
 
   private:
-    GLuint program_id;
-    GLuint vertex_id;
-    GLuint fragment_id;
+    uint_type program_id;
+    uint_type vertex_id;
+    uint_type fragment_id;
 
-    std::unordered_map<std::string, GLuint> attributes;
-    std::unordered_map<std::string, GLuint> uniforms;
+    std::unordered_map<std::string, uint_type> attributes;
+    std::unordered_map<std::string, uint_type> uniforms;
 
     // Initialize the shader, called by init_from_*
     void init(const std::string& vertex_source, const std::string& frag_source);
 
     // Compiles the shader, called by init
-    GLuint compile(const std::string& shaderSource, GLenum type);
+    uint_type compile(const std::string& shaderSource, GLenum type);
 
 }; // end of shader
 
@@ -75,12 +77,12 @@ class Shader
 // Implementation
 //
 
-GLuint
+uint_type
 Shader::compile(const std::string& source, GLenum type)
 {
     // Generate a shader id
     // Note: Shader id will be non-zero if successfully created.
-    GLuint shaderId = glCreateShader(type);
+    uint_type shaderId = glCreateShader(type);
     if (shaderId == 0) {
         throw std::runtime_error("\nglCreateShader Error");
     }
@@ -184,7 +186,7 @@ Shader::enable()
     }
 }
 
-GLuint
+uint_type
 Shader::attribute(const std::string& name)
 {
     // Add the attribute to the map table if it doesn't already exist
@@ -197,7 +199,7 @@ Shader::attribute(const std::string& name)
     return attributes[name];
 }
 
-GLuint
+uint_type
 Shader::uniform(const std::string& name)
 {
     // Add the uniform to the map table if it doesn't already exist

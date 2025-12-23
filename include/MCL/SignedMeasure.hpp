@@ -1,8 +1,8 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
 
-#ifndef MCL_SIGNEDVOLUME_HPP
-#define MCL_SIGNEDVOLUME_HPP 1
+#ifndef MCL_SIGNEDMEASURE_HPP
+#define MCL_SIGNEDMEASURE_HPP 1
 
 #include <Eigen/Dense>
 

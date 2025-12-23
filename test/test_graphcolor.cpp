@@ -1,12 +1,13 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
 
-#include <Eigen/Sparse>
-#include <MCL/AssertHandler.hpp>
 #include <MCL/GraphColor.hpp>
-#include <MCL/ReadEleNode.hpp>
-#include <MCL/MicroTimer.hpp>
 
+#include <MCL/AssertHandler.hpp>
+#include <MCL/MicroTimer.hpp>
+#include <MCL/ReadEleNode.hpp>
+
+#include <Eigen/Sparse>
 #include <iostream>
 #include <unordered_map>
 #include <vector>
@@ -102,6 +103,7 @@ graph_color_mesh()
 
     check_colors(vertex_colors);
     check_colors(vertex_colors_A);
+    mclAssert(mcl::verify_graph_colors(A, vertex_colors_A)); // helper function for matrix
 
     // Combine small colors
     size_t min_color_size = 200;
