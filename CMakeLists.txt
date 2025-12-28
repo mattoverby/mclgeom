@@ -10,8 +10,14 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 option(MCLGEOM_EXAMPLES "Compile visual examples" OFF)
 option(MCLGEOM_UNIT_TESTS "Compile unit tests" OFF)
+option(MCLGEOM_DISABLE_ASSERT "Disable mclAssert" OFF)
 
 find_package(Eigen3 REQUIRED)
+
+# If defined, mclAssert statement is a no-op
+if (NOT MCLGEOM_DISABLE_ASSERT)
+    add_definitions(-DMCLGEOM_DISABLE_ASSERT)
+endif()
 
 # Header only library
 add_library(${PROJECT_NAME} INTERFACE)

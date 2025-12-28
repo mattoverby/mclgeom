@@ -1,8 +1,8 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
 
-#ifndef MCL_ASSERT_HPP
-#define MCL_ASSERT_HPP 1
+#ifndef MCL_GEOM_ASSERT_HPP
+#define MCL_GEOM_ASSERT_HPP 1
 
 #include <cstdlib>
 #include <stdexcept>
@@ -13,19 +13,32 @@ namespace mcl {
 static inline void
 mclAssertHandler(bool cond, const std::string& file, const int& line)
 {
+#ifndef MCLGEOM_DISABLE_ASSERT
     if (!cond) {
         std::string err_msg = "Assertion failed in " + file + " line " + std::to_string(line);
         throw std::runtime_error(err_msg.c_str());
     }
+#else
+    (void)(cond);
+    (void)(file);
+    (void)(line);
+#endif
 }
 
 static inline void
 mclAssertHandlerMsg(bool cond, const std::string& file, const int& line, const std::string& msg)
 {
+#ifndef MCLGEOM_DISABLE_ASSERT
     if (!cond) {
         std::string err_msg = "Assertion failed in " + file + " line " + std::to_string(line) + ": " + msg;
         throw std::runtime_error(err_msg.c_str());
     }
+#else
+    (void)(cond);
+    (void)(file);
+    (void)(line);
+    (void)(msg);
+#endif
 }
 
 } // ns mcl
