@@ -57,7 +57,7 @@ class Shader
     // Returns the bound location of a named uniform
     uint_type uniform(const std::string& name);
 
-  private:
+  protected:
     uint_type program_id;
     uint_type vertex_id;
     uint_type fragment_id;
@@ -77,7 +77,7 @@ class Shader
 // Implementation
 //
 
-uint_type
+Shader::uint_type
 Shader::compile(const std::string& source, GLenum type)
 {
     // Generate a shader id
@@ -186,7 +186,7 @@ Shader::enable()
     }
 }
 
-uint_type
+Shader::uint_type
 Shader::attribute(const std::string& name)
 {
     // Add the attribute to the map table if it doesn't already exist
@@ -199,7 +199,7 @@ Shader::attribute(const std::string& name)
     return attributes[name];
 }
 
-uint_type
+Shader::uint_type
 Shader::uniform(const std::string& name)
 {
     // Add the uniform to the map table if it doesn't already exist

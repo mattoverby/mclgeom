@@ -53,5 +53,4 @@ mclAssertHandlerMsg(bool cond, const std::string& file, const int& line, const s
 
 #define mclAssert(...)                                                                                                 \
     mclAssert_stripargs(, ##__VA_ARGS__, mclAssert_withmsg(__VA_ARGS__), mclAssert_nomsg(__VA_ARGS__), )
-
 #endif

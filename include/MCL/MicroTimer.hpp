@@ -1,8 +1,8 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
 
-#ifndef MCL_MICROTIMER_HPP
-#define MCL_MICROTIMER_HPP 1
+#ifndef MCL_GEOM_MICROTIMER_HPP
+#define MCL_GEOM_MICROTIMER_HPP 1
 
 #include <chrono>
 

@@ -10,12 +10,12 @@ namespace mcl {
 
 /// @brief Makes a 3D box between lower and upper corners
 template<typename T, typename DerivedV, typename DerivedF>
-static inline void
+inline void
 make_tri_box(const Eigen::Vector3<T>& bmin, const Eigen::Vector3<T>& bmax, DerivedV& V, DerivedF& F);
 
 /// @brief Makes a 3D quad between lower and upper corners
 template<typename T, typename DerivedV, typename DerivedF>
-static inline void
+inline void
 make_quad(const Eigen::Vector2<T>& bottom_left,
           const Eigen::Vector2<T>& upper_right,
           int tessellation,
@@ -27,7 +27,7 @@ make_quad(const Eigen::Vector2<T>& bottom_left,
 //
 
 template<typename T, typename DerivedV, typename DerivedF>
-static inline void
+inline void
 make_tri_box(const Eigen::Vector3<T>& bmin, const Eigen::Vector3<T>& bmax, DerivedV& V, DerivedF& F)
 {
     V.resize(8, 3);
@@ -44,7 +44,7 @@ make_tri_box(const Eigen::Vector3<T>& bmin, const Eigen::Vector3<T>& bmax, Deriv
 }
 
 template<typename T, typename DerivedV, typename DerivedF>
-void
+inline void
 make_quad(const Eigen::Vector2<T>& bottom_left,
           const Eigen::Vector2<T>& upper_right,
           int tessellation,

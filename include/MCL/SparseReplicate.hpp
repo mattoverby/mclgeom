@@ -11,7 +11,7 @@ namespace mcl {
 // Copies values along the diagonal of a sparse matrix.
 // For making n x m matrices n*dim x m*dim
 template<typename T>
-static inline void
+inline void
 sparse_replicate(const Eigen::SparseMatrix<T>& A, int dim, Eigen::SparseMatrix<T>& Adim)
 {
     using namespace Eigen;

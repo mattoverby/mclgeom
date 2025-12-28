@@ -10,7 +10,7 @@
 namespace mcl {
 
 template<typename Derived>
-static inline void
+inline void
 write_eigen_matrix(const std::string& fn, const Eigen::MatrixBase<Derived>& A)
 {
     std::ofstream file(fn);
@@ -20,7 +20,7 @@ write_eigen_matrix(const std::string& fn, const Eigen::MatrixBase<Derived>& A)
 }
 
 template<typename T, int dim = Eigen::Dynamic>
-static inline bool
+inline bool
 read_eigen_matrix(const std::string& fn, Eigen::Matrix<T, Eigen::Dynamic, dim>& A)
 {
     // dim most often -1 (Eigen::Dynamic)

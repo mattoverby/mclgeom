@@ -19,7 +19,7 @@ namespace mcl {
 // If unreferenced, they are set to zero.
 // Returns true if all masses in span are positive.
 template<typename DerivedV, typename DerivedP, typename Scalar>
-static inline bool
+inline bool
 compute_masses(const Eigen::MatrixBase<DerivedV>& V,
                const Eigen::MatrixBase<DerivedP>& P,
                Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& M,

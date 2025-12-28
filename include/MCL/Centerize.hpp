@@ -12,7 +12,7 @@ namespace mcl {
 // Moves all of the vertices so that the center of the mesh
 // is at the origin. Returns translation used.
 template<typename DerivedV>
-static inline void
+inline void
 centerize(Eigen::MatrixBase<DerivedV>& V)
 {
     int cols = V.cols();
@@ -24,7 +24,7 @@ centerize(Eigen::MatrixBase<DerivedV>& V)
 
 // Returns the index of the center-most vertex
 template<typename DerivedV>
-static inline int
+inline int
 get_center_index(const Eigen::MatrixBase<DerivedV>& V)
 {
     typedef typename DerivedV::Scalar T;

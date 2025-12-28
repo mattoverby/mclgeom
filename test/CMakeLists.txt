@@ -32,4 +32,8 @@ if (MCLGEOM_UNIT_TESTS)
     target_link_libraries(test_graphcolor PUBLIC mcl::geom TBB::tbb)
     add_test(NAME TestGraphColor COMMAND test_graphcolor)
 
+    add_executable(test_disjointsets ${CMAKE_CURRENT_SOURCE_DIR}/test_disjointsets.cpp)
+    target_link_libraries(test_disjointsets PUBLIC mcl::geom)
+    add_test(NAME TestDisjointSets COMMAND test_disjointsets)
+
 endif()

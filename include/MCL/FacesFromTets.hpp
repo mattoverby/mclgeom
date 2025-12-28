@@ -30,7 +30,7 @@ faces_from_tet(const Eigen::RowVector4i& t)
 // Given a tet mesh T, compute surface triangles F.
 // True on success
 template<typename DerivedT, typename DerivedF>
-static inline bool
+inline bool
 faces_from_tets(const Eigen::MatrixBase<DerivedT>& T, Eigen::PlainObjectBase<DerivedF>& F)
 {
     using namespace Eigen;
@@ -111,7 +111,7 @@ faces_from_tets(const Eigen::MatrixBase<DerivedT>& T, Eigen::PlainObjectBase<Der
 // Given a mesh of tets or triangles, compute unique edges E.
 // True on success
 template<typename DerivedP, typename DerivedE>
-static inline bool
+inline bool
 get_unique_edges(const Eigen::MatrixBase<DerivedP>& P, Eigen::MatrixBase<DerivedE>& E)
 {
     int P_DIM = P.cols();

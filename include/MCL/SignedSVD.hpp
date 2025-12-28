@@ -10,7 +10,7 @@
 namespace mcl {
 
 template<typename T, int DIM>
-static inline void
+inline void
 signed_svd(const Eigen::Matrix<T, DIM, DIM>& F,
            Eigen::Matrix<T, DIM, 1>& S,
            Eigen::Matrix<T, DIM, DIM>& U,

@@ -13,7 +13,7 @@ namespace mcl {
 //
 // u1, u2: 0 to 1
 template<typename T, typename VecType>
-static inline void
+inline void
 sample_uniform_cone(T u1, T u2, T max_theta, VecType& vec_3)
 {
     T cos_theta = (T(1) - u1) + u1 * std::cos(max_theta);
@@ -28,7 +28,7 @@ sample_uniform_cone(T u1, T u2, T max_theta, VecType& vec_3)
 //	Cosine Hemisphere
 //
 template<typename T, typename VecType>
-static inline void
+inline void
 sample_cosine_hemisphere(T u1, T u2, VecType& vec_3)
 {
     T r = std::sqrt(u1);

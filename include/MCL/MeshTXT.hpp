@@ -20,10 +20,10 @@ namespace mcl {
 // Returns true on success
 // TODO: some error checking on read
 
-static inline bool
+inline bool
 write_mesh_txt(const std::string& filename, const Eigen::MatrixXd& X, const Eigen::MatrixXi& P);
 
-static inline bool
+inline bool
 read_mesh_txt(const std::string& filename, const Eigen::MatrixXd& X, const Eigen::MatrixXi& P);
 
 //

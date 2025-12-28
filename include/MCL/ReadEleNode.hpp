@@ -10,7 +10,7 @@
 
 namespace mcl {
 
-static inline bool
+inline bool
 read_ele_node(const std::string& filename_without_extensions, // will look for .node and .ele
               Eigen::MatrixXd& V,                             // vertices
               Eigen::MatrixXi& T)                             // tets

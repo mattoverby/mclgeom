@@ -15,7 +15,7 @@ option(MCLGEOM_DISABLE_ASSERT "Disable mclAssert" OFF)
 find_package(Eigen3 REQUIRED)
 
 # If defined, mclAssert statement is a no-op
-if (NOT MCLGEOM_DISABLE_ASSERT)
+if (MCLGEOM_DISABLE_ASSERT)
     add_definitions(-DMCLGEOM_DISABLE_ASSERT)
 endif()
 

@@ -23,12 +23,12 @@ graph_color(const Eigen::SparseMatrix<T>& adjacency, std::vector<std::vector<int
 /// @brief Sorts and combine colors smaller than a certain size.
 /// The combined color will be added to end regardless of size.
 /// @return True if any colors were combined
-bool
+inline bool
 combine_small_colors(size_t min_size, std::vector<std::vector<int>>& colors);
 
 /// @brief Helper function that verifies the coloring, prints out errors. Returns true if valid.
 template<typename T>
-bool
+inline bool
 verify_graph_colors(const Eigen::SparseMatrix<T>& adjacency, const std::vector<std::vector<int>>& colors);
 
 /// @brief Stochastic graph coloring.

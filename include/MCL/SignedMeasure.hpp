@@ -8,33 +8,33 @@
 
 namespace mcl {
 
-static inline double
+inline double
 signed_triangle_area(const Eigen::Vector2d& p1, const Eigen::Vector2d& p2, const Eigen::Vector2d& p3);
 
 // Returns (unscaled) first derivative of signed triangle area
-static inline std::array<Eigen::Vector2d, 3>
+inline std::array<Eigen::Vector2d, 3>
 signed_triangle_area_gradients(const Eigen::Vector2d& p1, const Eigen::Vector2d& p2, const Eigen::Vector2d& p3);
 
-static inline double
+inline double
 triangle_perimeter(const Eigen::Vector2d& p1, const Eigen::Vector2d& p2, const Eigen::Vector2d& p3);
 
-static inline double
+inline double
 triangle_area(const Eigen::Vector3d& p1, const Eigen::Vector3d& p2, const Eigen::Vector3d& p3);
 
-static inline double
+inline double
 signed_tet_volume(const Eigen::Vector3d& p1,
                   const Eigen::Vector3d& p2,
                   const Eigen::Vector3d& p3,
                   const Eigen::Vector3d& p4);
 
 // Returns (unscaled) first derivative of signed tet volume
-static inline std::array<Eigen::Vector3d, 4>
+inline std::array<Eigen::Vector3d, 4>
 signed_tet_volume_gradients(const Eigen::Vector3d& p1,
                             const Eigen::Vector3d& p2,
                             const Eigen::Vector3d& p3,
                             const Eigen::Vector3d& p4);
 
-static inline double
+inline double
 tet_surface_area(const Eigen::Vector3d& p1,
                  const Eigen::Vector3d& p2,
                  const Eigen::Vector3d& p3,

@@ -12,7 +12,7 @@
 
 namespace mcl {
 
-static inline bool
+inline bool
 read_seamed_obj(std::string filename,
                 Eigen::MatrixXd& V3D, // 3D vertices
                 Eigen::MatrixXd& VTC, // 2D UV tex init, if found
