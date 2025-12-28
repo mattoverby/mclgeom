@@ -112,7 +112,7 @@ faces_from_tets(const Eigen::MatrixBase<DerivedT>& T, Eigen::PlainObjectBase<Der
 // True on success
 template<typename DerivedP, typename DerivedE>
 inline bool
-get_unique_edges(const Eigen::MatrixBase<DerivedP>& P, Eigen::MatrixBase<DerivedE>& E)
+get_unique_edges(const Eigen::MatrixBase<DerivedP>& P, Eigen::PlainObjectBase<DerivedE>& E)
 {
     int P_DIM = P.cols();
     std::vector<Eigen::Vector2i> edges;
