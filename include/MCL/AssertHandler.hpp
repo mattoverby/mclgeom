@@ -10,7 +10,7 @@
 
 namespace mcl {
 
-static inline void
+inline void
 mclAssertHandler(bool cond, const std::string& file, const int& line)
 {
 #ifndef MCLGEOM_DISABLE_ASSERT
@@ -25,7 +25,7 @@ mclAssertHandler(bool cond, const std::string& file, const int& line)
 #endif
 }
 
-static inline void
+inline void
 mclAssertHandlerMsg(bool cond, const std::string& file, const int& line, const std::string& msg)
 {
 #ifndef MCLGEOM_DISABLE_ASSERT
@@ -53,4 +53,5 @@ mclAssertHandlerMsg(bool cond, const std::string& file, const int& line, const s
 
 #define mclAssert(...)                                                                                                 \
     mclAssert_stripargs(, ##__VA_ARGS__, mclAssert_withmsg(__VA_ARGS__), mclAssert_nomsg(__VA_ARGS__), )
-#endif
+
+#endif // MCL_GEOM_ASSERT_HPP

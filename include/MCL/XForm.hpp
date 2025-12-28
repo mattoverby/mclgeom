@@ -10,7 +10,7 @@
 namespace mcl {
 
 //
-// This class needs a serious refactor for efficiency..
+// This class needs a serious refactor.
 //
 template<typename T>
 class XForm
