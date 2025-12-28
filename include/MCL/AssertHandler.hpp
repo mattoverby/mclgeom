@@ -41,11 +41,12 @@ mclAssertHandlerMsg(bool cond, const std::string& file, const int& line, const s
 #endif
 }
 
-} // ns mcl
+} // end namespace mcl
 
 // Neat trick that allows macros with multiple arguments:
 // https://stackoverflow.com/questions/3046889/optional-parameters-with-c-macros
 // Also consider using #condition
+// Has issues with statments like mclAssert(a + b + c > 0);
 
 #define mclAssert_withmsg(cond, msg) mcl::mclAssertHandlerMsg(cond, std::string(__FILE__), __LINE__, msg)
 #define mclAssert_nomsg(cond) mcl::mclAssertHandler(cond, std::string(__FILE__), __LINE__)

@@ -1,11 +1,13 @@
 // Copyright Matt Overby 2025.
 // Distributed under the MIT License.
-#include <MCL/DisjointSets.hpp>
 #include <MCL/AssertHandler.hpp>
+#include <MCL/DisjointSets.hpp>
 
 #include <iostream>
 
-void test_disjoint_set(mcl::DisjointSets& ds, int x, int y) {
+void
+test_disjoint_set(mcl::DisjointSets& ds, int x, int y)
+{
     ds.make_union(x, y);
 }
 
@@ -29,11 +31,10 @@ main(int argc, char* argv[])
     t3.join();
     t4.join();
 
-    for (int i=0; i<n; ++i)
-    {
+    for (int i = 0; i < n; ++i) {
         std::cout << "find " << i << ": " << ds.find(i) << std::endl;
     }
-    
+
     mclAssert(ds.find(0) == 0);
     mclAssert(ds.find(1) == 1);
     mclAssert(ds.find(2) == 1);
