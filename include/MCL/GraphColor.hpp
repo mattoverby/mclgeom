@@ -110,8 +110,8 @@ GraphColor::color()
         tbb::parallel_for(size_t(0), nodeq.size(), [&](size_t i) {
             auto& node = graph[nodeq[i]];
             if (node.palette.empty()) {
-                for (int i = 0; i < init_palette; ++i) {
-                    node.palette.emplace(i);
+                for (int j = 0; j < init_palette; ++j) {
+                    node.palette.emplace(j);
                 }
             }
             static thread_local std::mt19937 gen(std::random_device{}());
