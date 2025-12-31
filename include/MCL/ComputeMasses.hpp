@@ -32,17 +32,15 @@ compute_masses(const Eigen::MatrixBase<DerivedV>& V,
     int V_dim = V.cols();
     int P_dim = P.cols();
     auto mass_type = MassType::UNKNOWN;
-    if (P_dim == 2){
+    if (P_dim == 2) {
         mass_type = MassType::SPRING;
-    }
-    else if(P_dim == 3) {
-         mass_type = MassType::TRIANGLE;
-    }
-    else if (P_dim == 4){
-      mass_type = MassType::TET;
+    } else if (P_dim == 3) {
+        mass_type = MassType::TRIANGLE;
+    } else if (P_dim == 4) {
+        mass_type = MassType::TET;
     }
 
-    if (mass_type == MassType::SPRING || mass_type == MassType::UNKNOWN){
+    if (mass_type == MassType::SPRING || mass_type == MassType::UNKNOWN) {
         return false;
     }
 
@@ -68,7 +66,9 @@ compute_masses(const Eigen::MatrixBase<DerivedV>& V,
     int np = P.rows();
     for (int i = 0; i < np; ++i) {
         if (mass_type == MassType::TET) {
-            Eigen::Vector3<Scalar> p_verts[4] = { vertex_as_3D(P(i, 0)), vertex_as_3D(P(i, 1)), vertex_as_3D(P(i, 2)), vertex_as_3D(P(i, 3)) };
+            Eigen::Vector3<Scalar> p_verts[4] = {
+                vertex_as_3D(P(i, 0)), vertex_as_3D(P(i, 1)), vertex_as_3D(P(i, 2)), vertex_as_3D(P(i, 3))
+            };
             Eigen::Matrix<Scalar, 3, 3> E;
             E.col(0) = p_verts[1] - p_verts[0];
             E.col(1) = p_verts[2] - p_verts[0];
