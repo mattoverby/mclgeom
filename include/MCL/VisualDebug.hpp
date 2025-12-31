@@ -7,7 +7,6 @@
 #include <Eigen/Dense>
 #include <vector>
 #include <mutex>
-#include <igl/opengl/glfw/Viewer.h>
 
 namespace mcl
 {
@@ -15,6 +14,10 @@ namespace mcl
 /// @brief A tool for visual debugging: cache geometry to draw on next frame.
 ///
 /// Example:
+///   // include viewer before VisualDebug.hpp to access "set_data_igl" function.
+///   #include <igl/opengl/glfw/Viewer.h>
+///   #include <MCL/VisualDebug.hpp>
+///
 ///   mcl::VisualDebug &vd = mcl::VisualDebug::get_instance(); // singleton
 ///   vd.add_point(Eigen::Vector3d(0,0,0), mcl::VisualDebug::Red); // thread-safe (mutex)
 ///   igl::opengl::glfw::Viewer viewer;
@@ -46,42 +49,46 @@ public:
 
 	VisualDebug operator=(VisualDebug const &) = delete;
 
+#ifdef IGL_OPENGL_GLFW_VIEWER_H
 	/// @brief Sets cache to igl mesh at specified index. Clears existings points and lines.
 	/// Optionally clear buffered data.
-	void set_data_igl(igl::opengl::glfw::Viewer &viewer, int mesh_index, bool clear_cache = true);
+	void set_data_igl(igl::opengl::glfw::Viewer &viewer, size_t mesh_index, bool clear_cache = true);
+#endif
 
 	/// @brief Buffer a point
 	template<typename VectorType>
 	void add_point(
 		const VectorType &p,
 		const Eigen::Vector3d &c=Red);
-#if 0
-	/// @brief Buffer multiple points
-	template<int dim>
+
+	/// @brief Buffer multiple points; color defaults to red
+	template<typename MatrixType>
 	void add_points(
-		const Eigen::VectorXd &p,
-		const Eigen::Vector4d &c=Red);
+	const MatrixType &p,
+	const MatrixType &c = MatrixType());
 
 	/// @brief Buffer a line segment (p0 to p1)
-	template<int dim>
+	template<typename VectorType>
 	void add_line(
-		const Eigen::Matrix<double,dim,1> &p0,
-		const Eigen::Matrix<double,dim,1> &p1,
-		const Eigen::Vector4d &c=Red);
+		const VectorType &p0,
+		const VectorType &p1,
+		const Eigen::Vector3d &c=Red);
 
 	/// @brief Buffer multiple line segments (p0 to p1)
-	template<int dim>
+	/// color defaults to red
+	template<typename MatrixType>
 	void add_lines(
-		const Eigen::VectorXd &p0,
-		const Eigen::VectorXd &p1,
-		const Eigen::Vector4d &c=Red);
+		const MatrixType &p0,
+		const MatrixType &p1,
+		const MatrixType &c = MatrixType());
 
 	/// @brief Buffer a wireframe box
+	template<typename VectorType>
 	void add_wireframe_box(
-		const Eigen::Vector3d &min,
-		const Eigen::Vector3d &max,
-		const Eigen::Vector4d &c=Red);
-#endif
+		const VectorType &min,
+		const VectorType &max,
+		const Eigen::Vector3d &c=Red);
+
 
 	/// @brief Clears all buffered data.
 	void clear();
@@ -95,36 +102,8 @@ protected:
 	std::mutex mtx;
 	std::vector<Eigen::Vector3d> pts;
 	std::vector<Eigen::Vector3d> pt_colors;
-#if 0
 	std::vector<Eigen::Vector3d> lines0, lines1;
 	std::vector<Eigen::Vector4d> line_colors;
-	std::vector<Eigen::Vector3d> faces0, faces1, faces2;
-	std::vector<Eigen::Vector4d> face_colors;
-	std::vector<Eigen::Vector3d> arrows0, arrows1;
-	std::vector<Eigen::Vector4d> arrow_colors;
-	Eigen::MatrixXd mesh_vertices;
-	Eigen::MatrixXd mesh_colors;
-	Eigen::MatrixXi mesh_indices;
-
-	// Here are some shapes created via constructor.
-	// Every three vertices is a face.
-	std::vector<Eigen::Vector3d> cylinder;
-	std::vector<Eigen::Vector3d> cone;
-
-	// For everything else (generic shapes), append them to vertices and faces
-	// Called by append_faces
-	void append_shapes( Eigen::MatrixXd &V, Eigen::MatrixXi &F, Eigen::MatrixXd &C );
-
-	Eigen::Vector3d clamp( const Eigen::Vector3d &a ){
-		auto c01 = []( const double &aa ){ return std::min(1.0,std::max(0.0,aa)); };
-		return Eigen::Vector3d( c01(a[0]), c01(a[1]), c01(a[2]) );
-	}
-	Eigen::Vector4d clamp( const Eigen::Vector4d &a ){
-		auto c01 = []( const double &aa ){ return std::min(1.0,std::max(0.0,aa)); };
-		return Eigen::Vector4d( c01(a[0]), c01(a[1]), c01(a[2]), c01(a[3]) );
-	}
-
-#endif
 
 	template<typename VectorType>
 	Eigen::Vector3d to_vec3d(const VectorType &p){
@@ -151,31 +130,40 @@ protected:
 // Implementation
 //
 
-void VisualDebug::set_data_igl(igl::opengl::glfw::Viewer &viewer, int mesh_index, bool clear_cache)
+#ifdef IGL_OPENGL_GLFW_VIEWER_H
+void VisualDebug::set_data_igl(igl::opengl::glfw::Viewer &viewer, size_t mesh_index, bool clear_cache)
 {
 	std::lock_guard<std::mutex> lock(mtx);
 
 	// Create mesh index if we don't have it.
-	while(mesh_index >= int(viewer.data_list.size()))
+	while(mesh_index >= viewer.data_list.size())
 	{
 		bool visible = mesh_index == int(viewer.data_list.size());
 		viewer.append_mesh(visible);
 	}
 
-	viewer.data(mesh_index).clear_points();
-	viewer.data(mesh_index).clear_edges();
-
 	// Copy to matrix and set igl
+
 	if (!pts.empty() && pts.size() == pt_colors.size()) {
+		viewer.data(mesh_index).clear_points();
 		Eigen::MatrixXd P = to_matrixXd(pts);
 		Eigen::MatrixXd PC = to_matrixXd(pt_colors);
-		viewer.data(mesh_index).set_points(P, PC);
+		viewer.data(mesh_index).add_points(P, PC);
+	}
+
+	if (!lines0.empty() && lines0.size() == lines1.size() && lines0.size() == line_colors.size()) {
+		viewer.data(mesh_index).clear_edges();
+		Eigen::MatrixXd L0 = to_matrixXd(lines0);
+		Eigen::MatrixXd L1 = to_matrixXd(lines1);
+		Eigen::MatrixXd LC = to_matrixXd(line_colors);
+		viewer.data(mesh_index).add_edges(L0, L1, LC);
 	}
 
 	if (clear_cache) {
 		clear();
 	}
 }
+#endif
 
 template<typename VectorType>
 void VisualDebug::add_point(const VectorType &p, const Eigen::Vector3d &c)
@@ -185,10 +173,125 @@ void VisualDebug::add_point(const VectorType &p, const Eigen::Vector3d &c)
 	pt_colors.emplace_back(c);
 }
 
+template<typename MatrixType>
+void VisualDebug::add_points(
+	const MatrixType &p,
+	const MatrixType &c)
+{
+	std::lock_guard<std::mutex> lock(mtx);
+	pts.reserve(pts.size() + p.rows());
+	pt_colors.reserve(pt_colors.size() + p.rows());
+	for (size_t i=0; i<p.rows(); ++i)
+	{
+		pts.emplace_back(to_vec3d(p.row(i)));
+		Eigen::Vector3i ci = i < c.rows() ? to_vec3d(c.row(i)) : Red;
+		pt_colors.emplace_back(ci);
+	}
+}
+
+template<typename VectorType>
+void VisualDebug::add_line(
+	const VectorType &p0,
+	const VectorType &p1,
+	const Eigen::Vector3d &c)
+{
+	std::lock_guard<std::mutex> lock(mtx);
+	lines0.emplace_back(to_vec3d(p0));
+	lines1.emplace_back(to_vec3d(p1));
+	line_colors.emplace_back(c);
+}
+
+template<typename MatrixType>
+void VisualDebug::add_lines(
+	const MatrixType &p0,
+	const MatrixType &p1,
+	const MatrixType &c)
+{
+	std::lock_guard<std::mutex> lock(mtx);
+	size_t nl = std::min(p0.size(), p1.size());
+	lines0.reserve(lines0.size() + nl);
+	lines1.reserve(lines1.size() + nl);
+	line_colors.reserve(line_colors.size() + nl);
+	for (size_t i=0; i<nl; ++i)
+	{
+		lines0.emplace_back(to_vec3d(p0.row(i)));
+		lines1.emplace_back(to_vec3d(p1.row(i)));
+		Eigen::Vector3i ci = i < c.rows() ? to_vec3d(c.row(i)) : Red;
+		line_colors.emplace_back(ci);
+	}
+}
+	
+template<typename VectorType>
+void VisualDebug::add_wireframe_box(
+	const VectorType &min_,
+	const VectorType &max_,
+	const Eigen::Vector3d &color)
+{
+	Eigen::Vector3d min = to_vec3d(min_);
+	Eigen::Vector3d max = to_vec3d(max_);
+
+	// Bottom quad
+	Eigen::Vector3d a = min;
+	Eigen::Vector3d b( max[0], min[1], min[2] );
+	Eigen::Vector3d c( max[0], min[1], max[2] );
+	Eigen::Vector3d d( min[0], min[1], max[2] );
+	
+	// Top quad
+	Eigen::Vector3d e( min[0], max[1], min[2] );
+	Eigen::Vector3d f( max[0], max[1], min[2] );
+	Eigen::Vector3d g = max;
+	Eigen::Vector3d h( min[0], max[1], max[2] );
+
+	// bottom
+	lines0.emplace_back( a );
+	lines1.emplace_back( b );
+	line_colors.emplace_back(color);
+	lines0.emplace_back( a );
+	lines1.emplace_back( d );
+	line_colors.emplace_back(color);
+	lines0.emplace_back( c );
+	lines1.emplace_back( b );
+	line_colors.emplace_back(color);
+	lines0.emplace_back( c );
+	lines1.emplace_back( d );
+	line_colors.emplace_back(color);
+
+	// top
+	lines0.emplace_back( e );
+	lines1.emplace_back( f );
+	line_colors.emplace_back(color);
+	lines0.emplace_back( e );
+	lines1.emplace_back( h );
+	line_colors.emplace_back(color);
+	lines0.emplace_back( g );
+	lines1.emplace_back( f );
+	line_colors.emplace_back(color);
+	lines0.emplace_back( g );
+	lines1.emplace_back( h );
+	line_colors.emplace_back(color);
+
+	// columns
+	lines0.emplace_back( d );
+	lines1.emplace_back( h );
+	line_colors.emplace_back(color);
+	lines0.emplace_back( min );
+	lines1.emplace_back( e );
+	line_colors.emplace_back(color);
+	lines0.emplace_back( b );
+	lines1.emplace_back( f );
+	line_colors.emplace_back(color);
+	lines0.emplace_back( c );
+	lines1.emplace_back( max );
+	line_colors.emplace_back(color);
+}
+
 void VisualDebug::clear()
 {
 	pts.clear();
 	pt_colors.clear();
+	lines0.clear();
+	lines1.clear();
+	line_colors.clear();
 }
 
 } // end namespace mcl
