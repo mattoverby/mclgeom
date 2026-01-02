@@ -42,7 +42,7 @@ quadratic_bend_K0(const Eigen::Vector3<T>& x0,
 /// (Pc, Pd) is the shared edge between triangles (Pa, Pd, Pc) and (Pb, Pc, Pd).
 /// Note: this is different than quadratic model and "make_hinges" above!
 template<typename T>
-Eigen::Vector4<T>
+inline Eigen::Vector4<T>
 linear_bend_alpha(const Eigen::Vector3<T>& Pa,
                   const Eigen::Vector3<T>& Pb,
                   const Eigen::Vector3<T>& Pc,
