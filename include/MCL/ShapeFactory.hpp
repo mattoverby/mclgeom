@@ -80,7 +80,7 @@ make_tet_box(const Eigen::Vector3<Scalar>& bmin,
 
     const std::size_t reserve_tets = static_cast<std::size_t>(5 * std::pow(8.0, subdivisions));
     const std::size_t n_vtx = static_cast<std::size_t>(std::pow(2.0, subdivisions));
-    const std::size_t reserve_vtx = (n + 1) * (n + 1) * (n + 1);
+    const std::size_t reserve_vtx = (n_vtx + 1) * (n_vtx + 1) * (n_vtx + 1);
     tets.reserve(reserve_tets);
     vertices.reserve(reserve_vtx);
 
