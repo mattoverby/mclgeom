@@ -10,7 +10,7 @@
 namespace mcl {
 
 // Reads a version 4 MSH file, not supported by igl.
-static inline bool
+inline bool
 readMSH4(const std::string& filePath, Eigen::MatrixXd& TV, Eigen::MatrixXi& TT)
 {
     FILE* in = fopen(filePath.c_str(), "r");

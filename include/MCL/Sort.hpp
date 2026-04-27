@@ -7,7 +7,7 @@
 namespace mcl {
 
 template<typename T>
-static inline void
+inline void
 sort3(T& a, T& b, T& c)
 {
     if (a > b) {

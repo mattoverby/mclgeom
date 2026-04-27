@@ -1,8 +1,8 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
 
-#ifndef MCL_SAMPLESHAPE_HPP
-#define MCL_SAMPLESHAPE_HPP 1
+#ifndef MCL_GEOM_SAMPLESHAPE_HPP
+#define MCL_GEOM_SAMPLESHAPE_HPP 1
 
 #include <math.h>
 
@@ -12,9 +12,9 @@ namespace mcl {
 //	Uniform Cone
 //
 // u1, u2: 0 to 1
-template<typename T>
-static inline void
-sample_uniform_cone(T u1, T u2, T max_theta, T* vec_3)
+template<typename T, typename VecType>
+inline void
+sample_uniform_cone(T u1, T u2, T max_theta, VecType& vec_3)
 {
     T cos_theta = (T(1) - u1) + u1 * std::cos(max_theta);
     T sin_theta = std::sqrt(1 - cos_theta * cos_theta);
@@ -27,9 +27,9 @@ sample_uniform_cone(T u1, T u2, T max_theta, T* vec_3)
 //
 //	Cosine Hemisphere
 //
-template<typename T>
-static inline void
-sample_cosine_hemisphere(T u1, T u2, T* vec_3)
+template<typename T, typename VecType>
+inline void
+sample_cosine_hemisphere(T u1, T u2, VecType& vec_3)
 {
     T r = std::sqrt(u1);
     T theta = 2 * M_PI * u2;

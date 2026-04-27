@@ -10,7 +10,7 @@ namespace mcl {
 
 // vertex-edge barycoords, allows negative barys
 template<typename T, int DIM>
-static inline Eigen::Matrix<T, 2, 1>
+inline Eigen::Matrix<T, 2, 1>
 point_edge_barys(const Eigen::Matrix<T, DIM, 1>& p,
                  const Eigen::Matrix<T, DIM, 1>& p0,
                  const Eigen::Matrix<T, DIM, 1>& p1)
@@ -30,7 +30,7 @@ point_edge_barys(const Eigen::Matrix<T, DIM, 1>& p,
 }
 
 template<typename T, int DIM> // Compute barycentric coords for a point on a triangle
-static inline Eigen::Matrix<T, 3, 1>
+inline Eigen::Matrix<T, 3, 1>
 point_triangle_barys(const Eigen::Matrix<T, DIM, 1>& p,
                      const Eigen::Matrix<T, DIM, 1>& p0,
                      const Eigen::Matrix<T, DIM, 1>& p1,
@@ -51,7 +51,7 @@ point_triangle_barys(const Eigen::Matrix<T, DIM, 1>& p,
 }
 
 template<typename T> // Compute barycentric coords for a point in a tet (3D)
-static inline Eigen::Matrix<T, 4, 1>
+inline Eigen::Matrix<T, 4, 1>
 point_tet_barys(const Eigen::Matrix<T, 3, 1>& p,
                 const Eigen::Matrix<T, 3, 1>& a,
                 const Eigen::Matrix<T, 3, 1>& b,

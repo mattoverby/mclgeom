@@ -10,7 +10,7 @@
 namespace mcl {
 
 // Reads VTK tet mesh
-bool
+inline bool
 readVTK(const std::string& vtk, Eigen::MatrixXd& V, Eigen::MatrixXi& T)
 {
     using namespace Eigen;

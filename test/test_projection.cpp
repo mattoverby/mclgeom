@@ -1,11 +1,12 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
+#include <MCL/Projection.hpp>
 
-#include "MCL/ArgParser.hpp"
-#include "MCL/AssertHandler.hpp"
-#include "MCL/Barycoords.hpp"
-#include "MCL/Normal.hpp"
-#include "MCL/Projection.hpp"
+#include <MCL/ArgParser.hpp>
+#include <MCL/AssertHandler.hpp>
+#include <MCL/Barycoords.hpp>
+#include <MCL/Normal.hpp>
+
 #include <iostream>
 
 using namespace Eigen;

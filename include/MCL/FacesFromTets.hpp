@@ -2,7 +2,7 @@
 // Distributed under the MIT License.
 
 //
-// TODO: rename file to "MakeFacets"
+// TODO: rename file to "MakeFacets" and return results (uses std::move operator anyway)
 //
 
 #ifndef MCL_GEOM_FACESFROMTETS_HPP
@@ -27,10 +27,9 @@ faces_from_tet(const Eigen::RowVector4i& t)
     return f;
 }
 
-// Given a tet mesh T, compute surface triangles F.
-// True on success
+/// @brief Given a tet mesh T, compute surface triangles F. True on success
 template<typename DerivedT, typename DerivedF>
-static inline bool
+inline bool
 faces_from_tets(const Eigen::MatrixBase<DerivedT>& T, Eigen::PlainObjectBase<DerivedF>& F)
 {
     using namespace Eigen;
@@ -108,11 +107,29 @@ faces_from_tets(const Eigen::MatrixBase<DerivedT>& T, Eigen::PlainObjectBase<Der
     return true;
 }
 
-// Given a mesh of tets or triangles, compute unique edges E.
-// True on success
+/// @brief Given a mesh of primitives, returns an unsorted list of vertex indices.
+template<typename DerivedP>
+inline Eigen::VectorXi
+get_unique_vertices(const Eigen::MatrixBase<DerivedP>& P)
+{
+    std::vector<bool> found(P.size(), false);
+    std::vector<int> vertices;
+    vertices.reserve(P.size());
+    int P_size = P.size();
+    for (int i = 0; i<P_size; ++i) {
+        int index = P.derived().data()[i];
+        if (!found[index]) {
+            found[index] = true;
+            vertices.emplace_back(index);
+        }
+    }
+    return Eigen::Map<Eigen::VectorXi>(vertices.data(), vertices.size()).eval();
+}
+
+/// @brief  Given a mesh of tets or triangles, compute unique edges E. True on success
 template<typename DerivedP, typename DerivedE>
-static inline bool
-get_unique_edges(const Eigen::MatrixBase<DerivedP>& P, Eigen::MatrixBase<DerivedE>& E)
+inline bool
+get_unique_edges(const Eigen::MatrixBase<DerivedP>& P, Eigen::PlainObjectBase<DerivedE>& E)
 {
     int P_DIM = P.cols();
     std::vector<Eigen::Vector2i> edges;

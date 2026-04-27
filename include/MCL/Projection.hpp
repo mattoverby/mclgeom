@@ -9,8 +9,9 @@
 namespace mcl {
 
 // Projection on Triangle
+// Source: https://www.geometrictools.com
 template<typename T>
-static inline Eigen::Matrix<T, 3, 1>
+inline Eigen::Matrix<T, 3, 1>
 point_on_triangle(const Eigen::Matrix<T, 3, 1>& point,
                   const Eigen::Matrix<T, 3, 1>& p1,
                   const Eigen::Matrix<T, 3, 1>& p2,
@@ -18,31 +19,31 @@ point_on_triangle(const Eigen::Matrix<T, 3, 1>& point,
 
 // Projection on Sphere
 template<typename T>
-static inline Eigen::Matrix<T, 3, 1>
+inline Eigen::Matrix<T, 3, 1>
 point_on_sphere(const Eigen::Matrix<T, 3, 1>& point, const Eigen::Matrix<T, 3, 1>& center, const T& rad);
 
 // Projection on a Box
 template<typename T>
-static inline Eigen::Matrix<T, 3, 1>
+inline Eigen::Matrix<T, 3, 1>
 point_on_box(const Eigen::Matrix<T, 3, 1>& point,
              const Eigen::Matrix<T, 3, 1>& bmin,
              const Eigen::Matrix<T, 3, 1>& bmax);
 
 // Project a point on to a plane
 template<typename T>
-static inline Eigen::Matrix<T, 3, 1>
+inline Eigen::Matrix<T, 3, 1>
 point_on_plane(const Eigen::Matrix<T, 3, 1>& point,
                const Eigen::Matrix<T, 3, 1>& plane_norm,
                const Eigen::Matrix<T, 3, 1>& plane_pt);
 
 // Projection on an edge
 template<typename T>
-static inline Eigen::Matrix<T, 2, 1>
+inline Eigen::Matrix<T, 2, 1>
 point_on_edge(const Eigen::Matrix<T, 2, 1>& point, const Eigen::Matrix<T, 2, 1>& p1, const Eigen::Matrix<T, 2, 1>& p2);
 
 // Projection on an edge (3D)
 template<typename T>
-static inline Eigen::Matrix<T, 3, 1>
+inline Eigen::Matrix<T, 3, 1>
 point_on_edge(const Eigen::Matrix<T, 3, 1>& point, const Eigen::Matrix<T, 3, 1>& p1, const Eigen::Matrix<T, 3, 1>& p2);
 
 // Computes the shortest vector from p toward q, as well as
@@ -50,7 +51,7 @@ point_on_edge(const Eigen::Matrix<T, 3, 1>& point, const Eigen::Matrix<T, 3, 1>&
 // The distance between the segments is the norm of this vector.
 // Source: https://github.com/evouga/collisiondetection, license: public domain.
 template<typename T>
-static inline Eigen::Matrix<T, 3, 1>
+inline Eigen::Matrix<T, 3, 1>
 edge_to_edge(const Eigen::Matrix<T, 3, 1>& p0,
              const Eigen::Matrix<T, 3, 1>& p1,
              const Eigen::Matrix<T, 3, 1>& q0,
@@ -68,7 +69,7 @@ point_on_triangle(const Eigen::Matrix<T, 3, 1>& point,
                   const Eigen::Matrix<T, 3, 1>& p2,
                   const Eigen::Matrix<T, 3, 1>& p3)
 {
-    // Source: https://www.geometrictools.com/Documentation/DistancePoint3Triangle3.pdf
+    // Source: https://www.geometrictools.com
 
     auto clamp_zero_one = [](const T& val) { return val < 0 ? 0 : (val > 1 ? 1 : val); };
 

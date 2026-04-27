@@ -5,7 +5,6 @@
 #define MCL_COMPUTEROOTS_HPP 1
 
 #include <Eigen/Core>
-// #include <cmath>
 #include <complex>
 
 namespace mcl {
@@ -14,7 +13,7 @@ namespace mcl {
 // a x^2 + b x + c
 // Returns a negative value if no roots found
 // from https://github.com/mike323zyf/BCQN
-static inline double
+inline double
 compute_quad_roots(double a, double b, double c, double tol = 1e-16)
 {
     double t = -1;
@@ -36,7 +35,7 @@ compute_quad_roots(double a, double b, double c, double tol = 1e-16)
 
 // Returns a negative value if no roots found
 // from: https://github.com/libigl/libigl/blob/main/include/igl/flip_avoiding_line_search.cpp
-static inline double
+inline double
 compute_quad_roots_2(double a, double b, double c)
 {
     double t1 = 0, t2 = 0;
@@ -81,7 +80,7 @@ compute_quad_roots_2(double a, double b, double c)
 // a x^3 + b x^2 + c x + d
 // Returns a negative value if no roots found
 // from https://github.com/mike323zyf/BCQN
-static inline double
+inline double
 compute_cubic_roots(double a, double b, double c, double d, double tol = 1e-16)
 {
     double t = -1;
@@ -112,7 +111,7 @@ compute_cubic_roots(double a, double b, double c, double d, double tol = 1e-16)
 }
 
 // src: https://github.com/libigl/libigl/blob/main/include/igl/flip_avoiding_line_search.cpp
-static inline double
+inline double
 compute_min_pos_root_2D(const Eigen::MatrixXd& x, const Eigen::MatrixXi& E, Eigen::MatrixXd& p, int f)
 {
     int v1 = E(f, 0);

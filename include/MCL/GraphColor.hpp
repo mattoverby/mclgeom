@@ -23,9 +23,15 @@ graph_color(const Eigen::SparseMatrix<T>& adjacency, std::vector<std::vector<int
 /// @brief Sorts and combine colors smaller than a certain size.
 /// The combined color will be added to end regardless of size.
 /// @return True if any colors were combined
-bool
+inline bool
 combine_small_colors(size_t min_size, std::vector<std::vector<int>>& colors);
 
+/// @brief Helper function that verifies the coloring, prints out errors. Returns true if valid.
+template<typename T>
+inline bool
+verify_graph_colors(const Eigen::SparseMatrix<T>& adjacency, const std::vector<std::vector<int>>& colors);
+
+/// @brief Stochastic graph coloring.
 class GraphColor
 {
   public:
@@ -104,8 +110,8 @@ GraphColor::color()
         tbb::parallel_for(size_t(0), nodeq.size(), [&](size_t i) {
             auto& node = graph[nodeq[i]];
             if (node.palette.empty()) {
-                for (int i = 0; i < init_palette; ++i) {
-                    node.palette.emplace(i);
+                for (int j = 0; j < init_palette; ++j) {
+                    node.palette.emplace(j);
                 }
             }
             static thread_local std::mt19937 gen(std::random_device{}());
@@ -255,6 +261,29 @@ combine_small_colors(size_t min_size, std::vector<std::vector<int>>& colors)
 
     colors.emplace_back(combined_color);
     return !combined_color.empty();
+}
+
+template<typename T>
+bool
+verify_graph_colors(const Eigen::SparseMatrix<T>& A, const std::vector<std::vector<int>>& colors)
+{
+    bool colors_are_valid = true;
+    for (size_t c = 0; c < colors.size(); ++c) {
+        const auto& nodes = colors[c];
+        std::unordered_set<int> node_set(nodes.begin(), nodes.end());
+
+        for (int i : nodes) {
+            for (typename Eigen::SparseMatrix<T>::InnerIterator it(A, i); it; ++it) {
+                int j = it.col();
+                if (j != i && node_set.count(j)) {
+                    printf("Color %d invalid: %d and %d are neighbors\n", int(c), i, j);
+                    colors_are_valid = false;
+                }
+            }
+        }
+    }
+
+    return colors_are_valid;
 }
 
 } // end namespace mcl

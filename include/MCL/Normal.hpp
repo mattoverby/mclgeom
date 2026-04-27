@@ -9,7 +9,7 @@
 namespace mcl {
 
 template<typename T>
-static inline Eigen::Matrix<T, 3, 1>
+inline Eigen::Matrix<T, 3, 1>
 triangle_normal(const Eigen::Matrix<T, 3, 1>& a,
                 const Eigen::Matrix<T, 3, 1>& b,
                 const Eigen::Matrix<T, 3, 1>& c,
@@ -26,7 +26,7 @@ triangle_normal(const Eigen::Matrix<T, 3, 1>& a,
 }
 
 template<typename T>
-static inline Eigen::Matrix<T, 2, 1>
+inline Eigen::Matrix<T, 2, 1>
 edge_normal(const Eigen::Matrix<T, 2, 1>& p0, const Eigen::Matrix<T, 2, 1>& p1, bool normalize = true)
 {
     Eigen::Matrix<T, 2, 1> n(p1[1] - p0[1], -(p1[0] - p0[0]));

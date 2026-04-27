@@ -1,55 +1,54 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
 
-#ifndef MCL_MICROTIMER_HPP
-#define MCL_MICROTIMER_HPP 1
+#ifndef MCL_GEOM_MICROTIMER_HPP
+#define MCL_GEOM_MICROTIMER_HPP 1
 
 #include <chrono>
 
 namespace mcl {
 
+template<typename ClockType = std::chrono::steady_clock>
 class MicroTimer
 {
   protected:
-    // typedef std::chrono::high_resolution_clock C;
-    typedef std::chrono::steady_clock C;
     typedef double T;
 
   public:
     MicroTimer()
-        : start_time(C::now())
+        : start_time(ClockType::now())
     {
     }
 
-    void reset() { start_time = C::now(); }
+    void reset() { start_time = ClockType::now(); }
 
     // Return time elapsed in seconds
-    T elapsed_s() const
+    T elapsed_s()
     {
-        curr_time = C::now();
+        curr_time = ClockType::now();
         std::chrono::duration<T> durr = curr_time - start_time;
         return durr.count();
     }
 
     // Return time elapsed in milliseconds
-    T elapsed_ms() const
+    T elapsed_ms()
     {
-        curr_time = C::now();
+        curr_time = ClockType::now();
         std::chrono::duration<T, std::milli> durr = curr_time - start_time;
         return durr.count();
     }
 
     // Return time elapsed in microseconds
-    T elapsed_us() const
+    T elapsed_us()
     {
-        curr_time = C::now();
+        curr_time = ClockType::now();
         std::chrono::duration<T, std::micro> durr = curr_time - start_time;
         return durr.count();
     }
 
   private:
-    std::chrono::time_point<C> start_time;
-    mutable std::chrono::time_point<C> curr_time;
+    std::chrono::time_point<ClockType> start_time;
+    std::chrono::time_point<ClockType> curr_time;
 
 }; // end class MicroTimer
 

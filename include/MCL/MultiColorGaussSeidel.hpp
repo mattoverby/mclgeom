@@ -12,125 +12,165 @@
 
 namespace mcl {
 
-template<typename T>
+/// @brief Multi-Color Gauss-Seidel with a projection operator for boundary constraints.
+/// Implemented for our paper DOI=10.1109/TVCG.2017.2730875
+/// Graph coloring can be performed with MCL/GraphColor.hpp.
+///
+/// Example:
+///  using RowSparseMatrix = Eigen::SparseMatrix<double, Eigen::RowMajor>;
+///  using RowMatrixX3d = Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>;
+///  RowSparseMatrix A; RowMatrixX3d B; RowMatrixX3d X; std::vector<std::vector<int>> colors;
+///  make_linear_system(A, B, colors);
+///  mcl::MultiColorGaussSeidel<RowMatrixX3d> mcgs;
+///  mcgs.project = [](int i, RowMatrixX3d& X){ X(i,1) = std::max(X(i,1), 0.0); }; // non-negative y
+///  mcgs.solve(A, B, X, colors);
+///
+template<typename MatrixType>
 class MultiColorGaussSeidel
 {
   public:
-    using RowSparseMatrix = Eigen::SparseMatrix<T, Eigen::RowMajor>;
+    using Scalar = typename MatrixType::Scalar;
+    using RowSparseMatrix = Eigen::SparseMatrix<Scalar, Eigen::RowMajor>;
 
     /// @brief Solver options
     struct Options
     {
-        int max_iters = 200; ///< max solver iters
-        int check_tol = 10;  ///< num iters to check tol
-        T rel_tol = (1e-8);  ///< delta x tolerance
-        T omega = T(1.9);    ///< relaxation parameter
-    };
+        int max_iters = 200;           ///< max solver iters
+        int check_tol = 10;            ///< num iters to check tol
+        Scalar rel_tol = Scalar(1e-6); ///< ||B-AX||/||B|| < rel_tol
+        Scalar omega = Scalar(1);      ///< relaxation parameter
+    } options;
 
-    /// @brief Placeholder for post-sweep projection
-    struct NoOp
-    {
-        template<typename DerivedX>
-        void operator()(int, DerivedX&) const
-        {
-        }
-    };
+    /// @brief Optional: Returns true if the solver should exit, default uses
+    /// ||B-AX||/||B|| < options.rel_tol. Example:
+    /// is_converged = converged(A, B, X);
+    std::function<bool(const RowSparseMatrix&, const MatrixType&, const MatrixType&)> converged;
 
-    /// @brief Solve AX=B s.t. X in C
-    /// @param A sparse matrix
-    /// @param B linear system rhs (row-major recommended)
-    /// @param X linear system variable (row-major recommended)
+    /// @brief Optional: Post-sweep projection (e.g., constraints). Example:
+    /// mcgs.project = [](int i, RowMatrixX3d& X){ X(i,1) = std::max(X(i,1), 0.0); };
+    /// Called in parallel if colors are used. usually nukes convergence.
+    std::function<void(int, MatrixType&)> project;
+
+    /// @brief Solve AX = B s.t. X in C
+    /// @param A row-major sparse matrix
+    /// @param B linear system rhs
+    /// @param X linear system variable, if set used as initial guess
     /// @param colors vertex colors for parallel execution
     /// @param parallel_exec optional flag for parallel/serial color
-    /// @param project optional post-sweep projection (e.g., constraints)
-    /// @param options solver settings
     /// @return number of iterations taken by solver
-    template<typename DerivedX, typename DerivedB, typename Projection = NoOp>
-    static int solve(const RowSparseMatrix& A,
-                     const DerivedB& B,
-                     DerivedX& X,
-                     const std::vector<std::vector<int>>& colors = {},
-                     const std::vector<bool>& parallel_exec = {},
-                     const Projection& project = {},
-                     const Options& options = Options())
-    {
-        int num_colors = colors.size();
-        int num_parallel_exec = parallel_exec.size();
+    int solve(const RowSparseMatrix& A,
+              const MatrixType& B,
+              MatrixType& X,
+              const std::vector<std::vector<int>>& colors = {},
+              const std::vector<bool>& parallel_exec = {});
 
-        // Resize X to correct size if needed
-        if (X.rows() != B.rows() || X.cols() != B.cols()) {
-            X = Eigen::PlainObjectBase<DerivedX>::Zero(B.rows(), B.cols());
-        }
-
-        // If no colors, serial execution
-        std::vector<int> all_inds;
-        if (num_colors == 0) {
-            num_colors = 1;
-            all_inds.resize(X.rows());
-            std::iota(all_inds.begin(), all_inds.end(), 0);
-        }
-
-        int iter = 1;
-        for (; iter <= options.max_iters; ++iter) {
-            for (int color = 0; color < num_colors; ++color) {
-
-                const auto& inds = colors.empty() ? all_inds : colors[color];
-
-                // Use serial execution if 1) no colors, 2) user-choice
-                if (colors.empty() || (color < num_parallel_exec && !parallel_exec[color])) {
-                    for (int ind : inds) {
-                        sweep(ind, A, B, X, options);
-                        project(ind, X);
-                    }
-                } else {
-                    tbb::parallel_for(tbb::blocked_range<int>(0, int(inds.size())),
-                                      [&](const tbb::blocked_range<int>& range) {
-                                          for (int i = range.begin(); i != range.end(); ++i) {
-                                              sweep(inds[i], A, B, X, options);
-                                              project(inds[i], X);
-                                          }
-                                      });
-                }
-            }
-
-            // Check if converged
-            if (iter % options.check_tol == 0 && converged(A, B, X, options)) {
-                break;
-            }
-        }
-        return iter;
-    }
-
-    /// @brief Checks: ||b-Ax||/||b|| < rel_tol
-    template<typename DerivedX, typename DerivedB>
-    static bool converged(const RowSparseMatrix& A, const DerivedB& B, const DerivedX& X, const Options& options)
-    {
-        T B_norm = B.norm();
-        T residual = (B - A * X).norm();
-        return (residual / B_norm < options.rel_tol);
-    }
+    /// @brief Checks: ||B-AX||/||B|| < rel_tol
+    bool default_converged(const RowSparseMatrix& A, const MatrixType& B, const MatrixType& X);
 
     /// @brief Performs an X update at specified row
-    template<typename DerivedX, typename DerivedB>
-    static void sweep(int row, const RowSparseMatrix& A, const DerivedB& B, DerivedX& X, const Options& options)
-    {
-        T Aii = T(0);
-        using RowVectorType = typename Eigen::internal::plain_row_type<DerivedX>::type;
-        RowVectorType LUx = RowVectorType::Zero();
-        for (typename RowSparseMatrix::InnerIterator iter(A, row); iter; ++iter) {
-            if (iter.col() == row) {
-                Aii = iter.value();
+    void sweep(int row, const RowSparseMatrix& A, const MatrixType& B, MatrixType& X);
+};
+
+//
+// Implementation
+//
+
+template<typename MatrixType>
+int
+MultiColorGaussSeidel<MatrixType>::solve(const RowSparseMatrix& A,
+                                         const MatrixType& B,
+                                         MatrixType& X,
+                                         const std::vector<std::vector<int>>& colors,
+                                         const std::vector<bool>& parallel_exec)
+{
+    int num_colors = colors.size();
+    int num_parallel_exec = parallel_exec.size();
+
+    // Resize X to correct size
+    if (X.rows() != B.rows() || X.cols() != B.cols()) {
+        X = B.eval();
+        X.setZero();
+    }
+
+    // Set convergence check if not user-provided
+    if (converged == nullptr) {
+        using namespace std::placeholders;
+        converged = std::bind(&MultiColorGaussSeidel::default_converged, this, _1, _2, _3);
+    }
+
+    // If no colors, serial execution
+    std::vector<int> all_inds;
+    if (num_colors == 0) {
+        num_colors = 1;
+        all_inds.resize(X.rows());
+        std::iota(all_inds.begin(), all_inds.end(), 0);
+    }
+
+    // Solver loop
+    int iter = 1;
+    for (; iter <= options.max_iters; ++iter) {
+        for (int color = 0; color < num_colors; ++color) {
+
+            const auto& inds = colors.empty() ? all_inds : colors[color];
+
+            // Use serial execution if (1) no colors or (2) user-choice
+            if (colors.empty() || (color < num_parallel_exec && !parallel_exec[color])) {
+                for (int ind : inds) {
+                    sweep(ind, A, B, X);
+                    if (project != nullptr) {
+                        project(ind, X);
+                    }
+                }
             } else {
-                LUx += iter.value() * X.row(iter.col());
+                tbb::parallel_for(tbb::blocked_range<int>(0, int(inds.size())),
+                                  [&](const tbb::blocked_range<int>& range) {
+                                      for (int i = range.begin(); i != range.end(); ++i) {
+                                          sweep(inds[i], A, B, X);
+                                          if (project != nullptr) {
+                                              project(inds[i], X);
+                                          }
+                                      }
+                                  });
             }
         }
-        if (std::abs(Aii) > T(0)) {
-            auto X0 = X.row(row);
-            auto X1 = (B.row(row) - LUx) / Aii;
-            X.row(row) = (T(1) - options.omega) * X0 + options.omega * X1;
+
+        // Check if converged
+        if (iter % options.check_tol == 0 && converged(A, B, X)) {
+            break;
         }
     }
-};
+
+    return iter;
+}
+
+template<typename MatrixType>
+bool
+MultiColorGaussSeidel<MatrixType>::default_converged(const RowSparseMatrix& A, const MatrixType& B, const MatrixType& X)
+{
+    Scalar B_norm = B.norm();
+    Scalar residual = (B - A * X).norm();
+    return (residual / B_norm < options.rel_tol);
+}
+
+template<typename MatrixType>
+void
+MultiColorGaussSeidel<MatrixType>::sweep(int row, const RowSparseMatrix& A, const MatrixType& B, MatrixType& X)
+{
+    Scalar Aii = Scalar(0);
+    auto Xi = B.row(row).eval();
+
+    for (typename RowSparseMatrix::InnerIterator it(A, row); it; ++it) {
+        if (it.col() == row) {
+            Aii = it.value();
+        } else {
+            Xi -= it.value() * X.row(it.col());
+        }
+    }
+
+    if (std::abs(Aii) > Scalar(0)) {
+        X.row(row) = (Scalar(1) - options.omega) * X.row(row).eval() + options.omega * (Xi / Aii);
+    }
+}
 
 } // end namespace mcl
 

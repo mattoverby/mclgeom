@@ -10,7 +10,7 @@
 namespace mcl {
 
 template<typename DerivedM, typename DerivedV>
-static inline void
+inline void
 mat_to_vec(const Eigen::PlainObjectBase<DerivedM>& M, Eigen::PlainObjectBase<DerivedV>& V)
 {
     typedef typename Eigen::PlainObjectBase<DerivedM>::Scalar Scalar;
@@ -34,7 +34,7 @@ mat_to_vec(const Eigen::PlainObjectBase<DerivedM>& M, Eigen::PlainObjectBase<Der
 
 // Matrix must be sized ahead of time
 template<typename DerivedM, typename DerivedV>
-static inline void
+inline void
 vec_to_mat(const Eigen::PlainObjectBase<DerivedV>& V, Eigen::PlainObjectBase<DerivedM>& M)
 {
     typedef typename Eigen::PlainObjectBase<DerivedV>::Scalar Scalar;

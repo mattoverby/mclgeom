@@ -10,27 +10,28 @@
 
 namespace mcl {
 
-// L-BFGS implementation based on Nocedal & Wright Numerical Optimization book (Section 7.2)
-// adapted from code by Ioannis Karamouzas.
-//
-// Function pointers are meant to be used with lambdas, e.g.
-//   LBFGS<MatrixXd> lbfgs;
-//   lbfgs.gradient = [&](const MatrixXd &x, MatrixXd &g)->Scalar { return ... };
-//   double obj = lbfgs.minimize(x);
-//
-// If the g arg is not sized, don't compute gradient. This is to avoid
-// extra work when only the objective is needed (line search) and to
-// avoid redundant code. Example:
-//   lbfgs.gradient = [&](const MatrixXd &x, MatrixXd &g)->Scalar
-//   {
-//     objective = ...
-//     if (g.rows() == x.rows())
-//     {
-//        g = ... (reuse computation for objective)
-//     }
-//     return objective;
-//   };
-//
+/// @brief L-BFGS implementation based on Nocedal & Wright Numerical Optimization book (Section 7.2)
+///
+/// adapted from code by Ioannis Karamouzas.
+///
+/// Function pointers are meant to be used with lambdas, e.g.
+///   LBFGS<MatrixXd> lbfgs;
+///   lbfgs.gradient = [&](const MatrixXd &x, MatrixXd &g)->Scalar { return ... };
+///   double obj = lbfgs.minimize(x);
+///
+/// If the g arg is not sized, don't compute gradient. This is to avoid
+/// extra work when only the objective is needed (line search) and to
+/// avoid redundant code. Example:
+///   lbfgs.gradient = [&](const MatrixXd &x, MatrixXd &g)->Scalar
+///   {
+///     objective = ...
+///     if (g.rows() == x.rows())
+///     {
+///        g = ... (reuse computation for objective)
+///     }
+///     return objective;
+///   };
+///
 template<typename MatrixType>
 class LBFGS
 {
@@ -41,10 +42,10 @@ class LBFGS
     {
         int min_iters;
         int max_iters;
-        Scalar abs_tol; // absolute tol if converged(...) not set
-        Scalar rel_tol; // relative tol if converged(...) not set
-        int M;          // history window size
-        Scalar gamma;   // init Hessian = gamma * I
+        Scalar abs_tol; ///< absolute tol if converged(...) not set
+        Scalar rel_tol; ///< relative tol if converged(...) not set
+        int M;          ///< history window size
+        Scalar gamma;   ///< init Hessian = gamma * I
         Options()
             : min_iters(0)
             , max_iters(100)
@@ -56,60 +57,54 @@ class LBFGS
         }
     } options;
 
+    /// @brief Constructor
     LBFGS();
 
-    // Output from the last call to minimize(...)
+    /// @brief Output from the last call to minimize(...)
     int iters() const { return num_iters; }
     Scalar gamma() const { return gamma_k; }
 
-    // Resizes buffers and sets to zero.
-    // Called during minimize(...) ONLY if there is a change in dof or M.
-    // Otherwise it's assumed you're picking up where you left off
-    // on the previous call to minimize(...)
+    /// @brief Resizes buffers and sets to zero.
+    /// Called during minimize(...) ONLY if there is a change in dof or M.
+    /// Otherwise it's assumed you're picking up where you left off
+    /// on the previous call to minimize(...)
     void reset(int rows, int cols);
 
-    // Required:
-    // computes objective value and gradient
-    //   obj = gradient(x, g)
-    // If the g arg is not sized, don't compute gradient
+    /// @brief Required: compute objective value and gradient.
+    /// If the g arg is not sized, don't compute gradient. Example:
+    /// double objective = gradient(x, grad)
     std::function<Scalar(const MatrixType&, MatrixType&)> gradient;
 
-    // Optional:
-    // Returns true if the solver should exit, default uses ||g||<abs_tol or ||g||<||x||rel_tol
-    //   is_converged = converged(obj, x_prev, x, grad)
+    /// @brief Optional: Returns true if the solver should exit, default uses
+    /// ||g||<abs_tol or ||g||<||x||rel_tol. Example:
+    ///  is_converged = converged(obj, x_prev, x, grad)
     std::function<bool(Scalar obj, const MatrixType&, const MatrixType&, const MatrixType&)> converged;
 
-    // Optional:
-    // Linesearch function, default uses bracketing weak wolfe (slow!)
-    //   obj_k1 = (x, grad, descent, alpha)
-    // Returns new objective value and updates both x AND gradient
+    /// @brief Optional: Linesearch function, default uses bracketing weak wolfe (slow!)
+    /// Returns new objective value and updates both x AND gradient. Example:
+    /// obj_k1 = (x, grad, descent, alpha)
     std::function<Scalar(MatrixType&, MatrixType&, const MatrixType&, Scalar&)> linesearch;
 
-    // Optional:
-    // Filter descent direction, p = B(p)
-    // Otherwise p = gamma_k * p is used.
+    /// @brief Optional: Filter descent direction, p = B(p). Otherwise, p = gamma_k * p is used.
     std::function<void(MatrixType&)> filter;
 
-    // Calls initialize(x) once and iterate(x) until converged
+    /// @brief Calls initialize(x) once and iterate(x) until converged
     Scalar minimize(MatrixType& x);
 
-    // Initialize the solver
+    /// @brief Initialize the solver
     void initialize(MatrixType& x);
 
-    // Take an iteration
-    // Returns objective
+    /// @brief Take an iteration and returns objective.
     Scalar iterate(MatrixType& x);
 
-    // i.e. bisection with weak Wolfe conditions
+    /// @brief Default linesearch: bisection with weak Wolfe conditions
     Scalar bracketing_weakwolfe(MatrixType& x, MatrixType& grad, const MatrixType& p, Scalar& alpha) const;
 
-    // Used if converged not set
-    // Returns true if:
-    // grad.norm <= abs_tol
-    // or
-    // grad.norm() <= rel_tol * x.norm()
+    /// @brief Used if converged function pointer has not been not set.
+    /// Returns true if: grad.norm <= abs_tol or grad.norm() <= rel_tol * x.norm().
     bool default_converged(Scalar curr_obj, const MatrixType& xprev, const MatrixType& x, const MatrixType& grad) const;
 
+    /// @brief Inner product
     Scalar inner(const MatrixType& a, const MatrixType& b) const;
 
   protected:

@@ -1,11 +1,13 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
 
-#include <Eigen/Sparse>
-#include <MCL/AssertHandler.hpp>
 #include <MCL/GraphColor.hpp>
+
+#include <MCL/AssertHandler.hpp>
+#include <MCL/MicroTimer.hpp>
 #include <MCL/ReadEleNode.hpp>
 
+#include <Eigen/Sparse>
 #include <iostream>
 #include <unordered_map>
 #include <vector>
@@ -59,8 +61,11 @@ graph_color_mesh()
     }
 
     // Perform coloring
-    std::vector<std::vector<int>> vertex_colors;
+    mcl::MicroTimer t;
     graph_color.color();
+    std::cout << "Color graph: " << t.elapsed_ms() << std::endl;
+
+    std::vector<std::vector<int>> vertex_colors;
     graph_color.get_colors(vertex_colors);
 
     // Perform coloring with adjaceny matrix
@@ -68,7 +73,9 @@ graph_color_mesh()
     Eigen::SparseMatrix<double> D(T.rows(), V0.rows());
     D.setFromTriplets(adj_triplets.begin(), adj_triplets.end());
     Eigen::SparseMatrix<double> A = D.transpose() * D;
+    t.reset();
     mcl::graph_color(A, vertex_colors_A);
+    std::cout << "Make and color graph from matrix: " << t.elapsed_ms() << std::endl;
 
     auto check_colors = [&](const std::vector<std::vector<int>>& colors) {
         // For easier verification, move to map.
@@ -96,11 +103,13 @@ graph_color_mesh()
 
     check_colors(vertex_colors);
     check_colors(vertex_colors_A);
+    mclAssert(mcl::verify_graph_colors(A, vertex_colors_A)); // helper function for matrix
 
     // Combine small colors
     size_t min_color_size = 200;
     size_t prev_num_colors = vertex_colors.size();
-    mcl::combine_small_colors(min_color_size, vertex_colors);
+    bool did_combine = mcl::combine_small_colors(min_color_size, vertex_colors);
+    mclAssert(did_combine);
     mclAssert(vertex_colors.size() < prev_num_colors);
 
     // All colors smaller than min_color_size should be combined into

@@ -1,15 +1,15 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
-
-#include <iostream>
+#include <MCL/LBFGS.hpp>
 
 #include <MCL/AssertHandler.hpp>
 #include <MCL/Centerize.hpp>
-#include <MCL/LBFGS.hpp>
 #include <MCL/ReadEleNode.hpp>
 
 #include <igl/edges.h>
 #include <igl/opengl/glfw/Viewer.h>
+
+#include <iostream>
 
 using namespace Eigen;
 
