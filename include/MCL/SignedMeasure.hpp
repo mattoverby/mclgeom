@@ -52,14 +52,19 @@ tet_surface_area(const Eigen::Vector3<T>& p1,
                  const Eigen::Vector3<T>& p3,
                  const Eigen::Vector3<T>& p4);
 
+/// @brief Helper accessor returns vertex refs
+template <typename T, int DIM, int PDIM>
+inline std::array<Eigen::Vector<T, DIM>, PDIM>
+get_verts(const T *V, const int *stencil);
+
 /// @brief Helper accessor returns vertices x = x0*(1-t) + x1*t
 template <typename T, int DIM, int PDIM>
 inline std::array<Eigen::Vector<T,DIM>, PDIM>
-get_verts(const T *V0, const T *V1, const int *stencil, T t);
+get_verts_at_delta(const T *V0, const T *V1, const int *stencil, T t);
 
-/// @brief Hellper accessor returns the primitive
+/// @brief Helper accessor returns the primitive
 template <int PDIM>
-inline Eigen::Vector<int,PDIM>
+inline Eigen::Vector<int, PDIM>
 get_primitive(int prim_index, const int *primitives);
 
 
@@ -148,46 +153,35 @@ tet_surface_area(const Eigen::Vector3<T>& p1,
     return (a1 + a2 + a3 + a4);
 }
 
-template <typename T, int DIM, int PDIM, typename IndexType>
-std::array<Eigen::Vector<T,DIM>, PDIM>
-get_verts(const T *V0, const T *V1, const int *stencil, T t)
+template <typename T, int DIM, int PDIM>
+std::array<Eigen::Vector<T, DIM>, PDIM>
+get_verts(const T *V, const int *stencil)
 {
+    std::array<Eigen::Vector<T, DIM>, PDIM> v;
+    for (int i = 0; i < PDIM; ++i) {
+        v[i] = Eigen::Map<const Eigen::Vector<T, DIM>>(V + stencil[i] * DIM).eval();
+    }
+    return v;
+}
+
+template <typename T, int DIM, int PDIM>
+std::array<Eigen::Vector<T,DIM>, PDIM>
+get_verts_at_delta(const T *V0, const T *V1, const int *stencil, T t)
+{
+    auto verts_t0 = get_verts<T,DIM,PDIM>(V0, stencil);
+    auto verts_t1 = get_verts<T,DIM,PDIM>(V1, stencil);
     std::array<Eigen::Vector<T,DIM>, PDIM> v;
     for (int i = 0; i < PDIM; ++i) {
-        //Eigen::Vector<T,DIM> v0(V0);
-        //for (auto )
-        
+        v[i] = verts_t0[i] * (T(1) - t) + verts_t1[i] * t;
     }
-/*
-    Eigen::Vector4i tet(tets[tet_index*4+0], tets[tet_index*4+1], tets[tet_index*4+2], tets[tet_index*4+3]);
-    std::array<Eigen::Vector3<T>, 4> v0 = {
-        Eigen::Vector3<T>(V0[tet[0]*3+0], V0[tet[0]*3+1], V0[tet[0]*3+2]),
-        Eigen::Vector3<T>(V0[tet[1]*3+0], V0[tet[1]*3+1], V0[tet[1]*3+2]),
-        Eigen::Vector3<T>(V0[tet[2]*3+0], V0[tet[2]*3+1], V0[tet[2]*3+2]),
-        Eigen::Vector3<T>(V0[tet[3]*3+0], V0[tet[3]*3+1], V0[tet[3]*3+2])};
-    std::array<Eigen::Vector3<T>, 4> v1 = {
-        Eigen::Vector3<T>(V1[tet[0]*3+0], V1[tet[0]*3+1], V1[tet[0]*3+2]),
-        Eigen::Vector3<T>(V1[tet[1]*3+0], V1[tet[1]*3+1], V1[tet[1]*3+2]),
-        Eigen::Vector3<T>(V1[tet[2]*3+0], V1[tet[2]*3+1], V1[tet[2]*3+2]),
-        Eigen::Vector3<T>(V1[tet[3]*3+0], V1[tet[3]*3+1], V1[tet[3]*3+2])};
-        return {
-            v0[0]*(T(1) - t) + v1[0]*t,
-            v0[1]*(T(1) - t) + v1[1]*t,
-            v0[2]*(T(1) - t) + v1[2]*t,
-            v0[3]*(T(1) - t) + v1[3]*t };
-*/
     return v;
 }
 
 template <int PDIM>
-Eigen::Vector<int,PDIM>
+Eigen::Vector<int, PDIM>
 get_primitive(int prim_index, const int *primitives)
 {
-    Eigen::Vector<int,PDIM> prim;
-    for (int i = 0; i<PDIM; ++i) {
-        prim[i] = primitives[prim_index * PDIM + i];
-    }
-    return prim;
+    return Eigen::Map<const Eigen::Vector<int, PDIM>>(primitives + prim_index * PDIM).eval();
 }
 
 } // ns mcl

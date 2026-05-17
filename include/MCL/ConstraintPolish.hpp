@@ -5,6 +5,7 @@
 #define MCL_GEOM_CONSTRAINT_POLISH_HPP 1
 
 #include "SignedMeasure.hpp"
+#include "DisjointSets.hpp"
 
 #include <Eigen/Core>
 
@@ -18,13 +19,14 @@ class VolumeConstraint
 {
 public:
     Eigen::Vector<int, DIM+1> stencil = Eigen::Vector<int, DIM+1>::Zero();
+    int index = -1; ///< unique index set by solver
     T scaling = 1;
 
     /// @brief Constructor
     VolumeConstraint() = default;
 
     /// @brief Constructor, scaling is computed as the surface area if not positive
-    VolumeConstraint(const T* x, const Eigen::Vector<int, DIM+1> stencil_, T scaling_ = -1);
+    VolumeConstraint(const T* x, const Eigen::Vector<int, DIM+1> stencil_, int index_, T scaling_ = 1);
 
     /// @brief Destructor
     ~VolumeConstraint() = default;
@@ -44,31 +46,75 @@ class InequalityConstraintSet
 {
 public:
     std::vector<VolumeConstraint<T,DIM>> volume_constraints;
+    std::vector<std::vector<int>> zones; // zone -> constraint index
+    std::vector<std::vector<int>> zone_stencils; // zone -> vertex stencils
 
     /// @brief Clears existing data
     void clear()
     {
         volume_constraints.clear();
+        zones.clear();
+        zone_stencils.clear();
+    }
+
+    /// @brief Returns number of constraints
+    size_t num_constraints() const
+    {
+        return volume_constraints.size();
     }
 
     /// @brief Loops over all primitives and adds any that are inverted to the set
     void add_inversions(const T* x, const T* x_rest, const int* primitives, int num_primitives)
     {
+        int constraint_index = 0;
         T threshold = T(1e-4);
         volume_constraints.reserve(num_primitives/4);
         for (int i=0; i<num_primitives; ++i) {
             auto stencil = get_primitive<DIM+1>(i, primitives);
-            auto verts = get_verts<T,DIM,DIM+1>(x, x, stencil.data(), 0);
+            auto verts = get_verts<T,DIM,DIM+1>(x, stencil.data());
             if constexpr (DIM == 2) {
                 if (signed_triangle_area(verts[0], verts[1], verts[2]) <= threshold) {
-                    volume_constraints.emplace_back(x_rest, stencil);
+                    volume_constraints.emplace_back(x_rest, stencil, constraint_index++, -1);
                 }
             }
             else if constexpr (DIM == 3) {
                 if (signed_tet_volume(verts[0], verts[1], verts[2], verts[3]) <= threshold) {
-                    volume_constraints.emplace_back(x_rest, stencil);
+                    volume_constraints.emplace_back(x_rest, stencil, constraint_index++, -1);
                 }
             }
+        }
+    }
+
+    /// @brief Group all constraints that share vertices, i.e., constraint (impact) zone
+    void sort()
+    {
+        // Disjoint set to find connected stencils
+        DisjointSets dj(num_constraints());
+        for (auto &c : volume_constraints) {
+            for (int i = 1; i<DIM+1; ++i) {
+                dj.make_union(c.stencil[i], c.stencil[i-1]);
+            }
+        }
+
+        // Sort into zones
+        std::vector<int> parent_to_zone_index;
+        parent_to_zone_index.reserve(num_constraints()/4);
+        zones.clear();
+        zone_stencils.clear();
+        for (auto &c : volume_constraints) {
+            int parent = dj.find(c.stencil[0]);
+            while(parent >= parent_to_zone_index.size()) {
+                parent_to_zone_index.emplace_back(-1);
+            }
+
+            // new zone
+            if (parent_to_zone_index[parent] < 0) {
+                parent_to_zone_index[parent] = zones.size();
+                zones.emplace_back();
+                zone_stencils.emplace_back();
+            }
+
+            //zones[parent_to_zone_index[parent]].emplace_back()
         }
     }
 };
@@ -78,10 +124,10 @@ public:
 //
 
 template<typename T, int DIM>
-VolumeConstraint<T,DIM>::VolumeConstraint(const T* x, const Eigen::Vector<int, DIM+1> stencil_, T scaling_) : stencil(stencil_), scaling(scaling_)
+VolumeConstraint<T,DIM>::VolumeConstraint(const T* x, const Eigen::Vector<int, DIM+1> stencil_, int index_, T scaling_) : stencil(stencil_), index(index_) scaling(scaling_)
 {
     if (scaling <= T(0)) {
-        auto verts = get_verts<T,DIM,DIM+1>(x, x, stencil.data(), 0);
+        auto verts = get_verts<T,DIM,DIM+1>(x, stencil.data());
         if constexpr (DIM == 2) {
             scaling = T(1) / (T(0.5) * triangle_perimeter(verts[0], verts[1], verts[2]));
         }
@@ -94,7 +140,7 @@ VolumeConstraint<T,DIM>::VolumeConstraint(const T* x, const Eigen::Vector<int, D
 template<typename T, int DIM>
 T VolumeConstraint<T,DIM>::eval(const T* x0, const T *x1, T t) const
 {
-    auto verts = get_verts<T,DIM,DIM+1>(x0, x1, stencil.data(), t);
+    auto verts = get_verts_at_delta<T,DIM,DIM+1>(x0, x1, stencil.data(), t);
     if constexpr (DIM == 2)
     {
         return scaling * signed_triangle_area(verts[0], verts[1], verts[2]);
@@ -109,7 +155,7 @@ T VolumeConstraint<T,DIM>::eval(const T* x0, const T *x1, T t) const
 template<typename T, int DIM>
 std::array<Eigen::Vector<T,DIM>, DIM+1> VolumeConstraint<T,DIM>::gradients(const T* x0, const T *x1, T t) const
 {
-    auto verts = get_verts<T,DIM,DIM+1>(x0, x1, stencil.data(), t);
+    auto verts = get_verts_at_delta<T,DIM,DIM+1>(x0, x1, stencil.data(), t);
     if constexpr (DIM == 2)
     {
         auto grads = signed_triangle_area_gradients(verts[0], verts[1], verts[2]);

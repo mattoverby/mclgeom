@@ -40,7 +40,7 @@ main(int argc, char* argv[])
     {
         int tet_index = (i * 10) % T.rows();
         auto stencil = mcl::get_primitive<4>(tet_index, T.data());
-        auto v = mcl::get_verts<double,3,4>(V.data(), V.data(), stencil.data(), 1.0);
+        auto v = mcl::get_verts<double,3,4>(V.data(), stencil.data());
         Vector3d n = mcl::triangle_normal(v[1], v[2], v[3]);
         double h = n.dot(v[0]-v[1]);
         v[0] -= 2.0 * h * n;
