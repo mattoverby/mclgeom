@@ -59,7 +59,7 @@ get_verts(const T *V0, const T *V1, const int *stencil, T t);
 
 /// @brief Hellper accessor returns the primitive
 template <int PDIM>
-Eigen::Vector<int,PDIM>
+inline Eigen::Vector<int,PDIM>
 get_primitive(int prim_index, const int *primitives);
 
 
@@ -154,7 +154,7 @@ get_verts(const T *V0, const T *V1, const int *stencil, T t)
 {
     std::array<Eigen::Vector<T,DIM>, PDIM> v;
     for (int i = 0; i < PDIM; ++i) {
-        Eigen::Vector<T,DIM> v0(V0);
+        //Eigen::Vector<T,DIM> v0(V0);
         //for (auto )
         
     }

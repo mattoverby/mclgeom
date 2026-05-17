@@ -94,14 +94,13 @@ VolumeConstraint<T,DIM>::VolumeConstraint(const T* x, const Eigen::Vector<int, D
 template<typename T, int DIM>
 T VolumeConstraint<T,DIM>::eval(const T* x0, const T *x1, T t) const
 {
+    auto verts = get_verts<T,DIM,DIM+1>(x0, x1, stencil.data(), t);
     if constexpr (DIM == 2)
     {
-        auto verts = get_verts<T,DIM,3>(0, x0, x1, stencil.data(), t);
         return scaling * signed_triangle_area(verts[0], verts[1], verts[2]);
     }
     else if constexpr (DIM == 3)
     {
-        auto verts = get_verts<T,DIM,4>(0, x0, x1, stencil.data(), t);
         return scaling * signed_tet_volume(verts[0], verts[1], verts[2], verts[2]);
     }
     return 0;  
@@ -110,9 +109,9 @@ T VolumeConstraint<T,DIM>::eval(const T* x0, const T *x1, T t) const
 template<typename T, int DIM>
 std::array<Eigen::Vector<T,DIM>, DIM+1> VolumeConstraint<T,DIM>::gradients(const T* x0, const T *x1, T t) const
 {
+    auto verts = get_verts<T,DIM,DIM+1>(x0, x1, stencil.data(), t);
     if constexpr (DIM == 2)
     {
-        auto verts = get_verts<T,DIM,3>(0, x0, x1, stencil.data(), t);
         auto grads = signed_triangle_area_gradients(verts[0], verts[1], verts[2]);
         grads[0] *= scaling;
         grads[1] *= scaling;
@@ -121,7 +120,6 @@ std::array<Eigen::Vector<T,DIM>, DIM+1> VolumeConstraint<T,DIM>::gradients(const
     }
     else if constexpr (DIM == 3)
     {
-        auto verts = get_verts<T,DIM,4>(0, x0, x1, stencil.data(), t);
         auto grads = signed_tet_volume_gradients(verts[0], verts[1], verts[2], verts[2]);
         grads[0] *= scaling;
         grads[1] *= scaling;
