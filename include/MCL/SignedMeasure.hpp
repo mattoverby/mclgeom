@@ -18,11 +18,15 @@ template <typename T>
 inline std::array<Eigen::Vector2<T>, 3>
 signed_triangle_area_gradients(const Eigen::Vector2<T>& p1, const Eigen::Vector2<T>& p2, const Eigen::Vector2<T>& p3);
 
-inline double
-triangle_perimeter(const Eigen::Vector2d& p1, const Eigen::Vector2d& p2, const Eigen::Vector2d& p3);
+/// @brief Returns the 2D triangle perimeter
+template <typename T>
+inline T
+triangle_perimeter(const Eigen::Vector2<T>& p1, const Eigen::Vector2<T>& p2, const Eigen::Vector2<T>& p3);
 
-inline double
-triangle_area(const Eigen::Vector3d& p1, const Eigen::Vector3d& p2, const Eigen::Vector3d& p3);
+/// @brief Returns the 2D triangle area
+template <typename T>
+inline T
+triangle_area(const Eigen::Vector3<T>& p1, const Eigen::Vector3<T>& p2, const Eigen::Vector3<T>& p3);
 
 /// @brief Returns signed volume of the tet
 template <typename T>
@@ -39,21 +43,25 @@ signed_tet_volume_gradients(const Eigen::Vector3<T>& p1,
                             const Eigen::Vector3<T>& p2,
                             const Eigen::Vector3<T>& p3,
                             const Eigen::Vector3<T>& p4);
-inline double
-tet_surface_area(const Eigen::Vector3d& p1,
-                 const Eigen::Vector3d& p2,
-                 const Eigen::Vector3d& p3,
-                 const Eigen::Vector3d& p4);
 
-/// @brief Helper accessor returns triangle vertices x = x0*(1-t) + x1*t
-template <typename T, int DIM, typename IndexType>
-inline std::array<Eigen::Vector<T,DIM>, 3>
-get_triangle_verts(int tri_index, const T *V0, const T *V1, const IndexType *tris, T t);
+/// @brief Returns the tet surface area                            
+template <typename T>
+inline T
+tet_surface_area(const Eigen::Vector3<T>& p1,
+                 const Eigen::Vector3<T>& p2,
+                 const Eigen::Vector3<T>& p3,
+                 const Eigen::Vector3<T>& p4);
 
-/// @brief Helper accessor returns tet vertices x = x0*(1-t) + x1*t
-template <typename T, typename IndexType>
-inline std::array<Eigen::Vector3<T>, 4>
-get_tet_verts(int tet_index, const T *V0, const T *V1, const IndexType *tets, T t);
+/// @brief Helper accessor returns vertices x = x0*(1-t) + x1*t
+template <typename T, int DIM, int PDIM>
+inline std::array<Eigen::Vector<T,DIM>, PDIM>
+get_verts(const T *V0, const T *V1, const int *stencil, T t);
+
+/// @brief Hellper accessor returns the primitive
+template <int PDIM>
+Eigen::Vector<int,PDIM>
+get_primitive(int prim_index, const int *primitives);
+
 
 //
 // Implementation
@@ -77,20 +85,22 @@ signed_triangle_area_gradients(const Eigen::Vector2<T>& a, const Eigen::Vector2<
     return g;
 }
 
-inline double
-triangle_perimeter(const Eigen::Vector2d& p1, const Eigen::Vector2d& p2, const Eigen::Vector2d& p3)
+template <typename T>
+T
+triangle_perimeter(const Eigen::Vector2<T>& p1, const Eigen::Vector2<T>& p2, const Eigen::Vector2<T>& p3)
 {
     return (p1 - p2).norm() + (p2 - p3).norm() + (p3 - p1).norm();
 }
 
 // https://en.wikipedia.org/wiki/Heron%27s_formula
-inline double
-triangle_area(const Eigen::Vector3d& p1, const Eigen::Vector3d& p2, const Eigen::Vector3d& p3)
+template <typename T>
+T
+triangle_area(const Eigen::Vector3<T>& p1, const Eigen::Vector3<T>& p2, const Eigen::Vector3<T>& p3)
 {
-    double a = (p1 - p2).norm();
-    double b = (p2 - p3).norm();
-    double c = (p3 - p1).norm();
-    double s = (a + b + c) * 0.5;
+    T a = (p1 - p2).norm();
+    T b = (p2 - p3).norm();
+    T c = (p3 - p1).norm();
+    T s = (a + b + c) * 0.5;
     return std::sqrt(s * (s - a) * (s - b) * (s - c));
 }
 
@@ -124,43 +134,31 @@ signed_tet_volume_gradients(const Eigen::Vector3<T>& p0,
     return grads;
 }
 
-inline double
-tet_surface_area(const Eigen::Vector3d& p1,
-                 const Eigen::Vector3d& p2,
-                 const Eigen::Vector3d& p3,
-                 const Eigen::Vector3d& p4)
+template <typename T>
+T
+tet_surface_area(const Eigen::Vector3<T>& p1,
+                 const Eigen::Vector3<T>& p2,
+                 const Eigen::Vector3<T>& p3,
+                 const Eigen::Vector3<T>& p4)
 {
-    double a1 = triangle_area(p2, p3, p4);
-    double a2 = triangle_area(p2, p3, p1);
-    double a3 = triangle_area(p3, p4, p1);
-    double a4 = triangle_area(p4, p2, p1);
+    T a1 = triangle_area(p2, p3, p4);
+    T a2 = triangle_area(p2, p3, p1);
+    T a3 = triangle_area(p3, p4, p1);
+    T a4 = triangle_area(p4, p2, p1);
     return (a1 + a2 + a3 + a4);
 }
 
-template <typename T, int DIM, typename IndexType>
-std::array<Eigen::Vector<T,DIM>, 3>
-get_triangle_verts(int tri_index, const T *V0, const T *V1, const IndexType *tris, T t)
+template <typename T, int DIM, int PDIM, typename IndexType>
+std::array<Eigen::Vector<T,DIM>, PDIM>
+get_verts(const T *V0, const T *V1, const int *stencil, T t)
 {
-    Eigen::Vector3i tri(tris[tri_index*3+0], tris[tri_index*3+1], tris[tri_index*3+2]);
-    std::array<Eigen::Vector<T,DIM>, 3> v0 = {
-        Eigen::Vector<T,DIM>(V0[tri[0]*DIM+0], V0[tri[0]*DIM+1], V0[tri[0]*DIM+2]),
-        Eigen::Vector<T,DIM>(V0[tri[1]*DIM+0], V0[tri[1]*DIM+1], V0[tri[1]*DIM+2]),
-        Eigen::Vector<T,DIM>(V0[tri[2]*DIM+0], V0[tri[2]*DIM+1], V0[tri[2]*DIM+2])};
-    std::array<Eigen::Vector<T,DIM>, 4> v1 = {
-        Eigen::Vector<T,DIM>(V1[tri[0]*DIM+0], V1[tri[0]*DIM+1], V1[tri[0]*DIM+2]),
-        Eigen::Vector<T,DIM>(V1[tri[1]*DIM+0], V1[tri[1]*DIM+1], V1[tri[1]*DIM+2]),
-        Eigen::Vector<T,DIM>(V1[tri[2]*DIM+0], V1[tri[2]*DIM+1], V1[tri[2]*DIM+2])};
-        return {
-            v0[0]*(T(1) - t) + v1[0]*t,
-            v0[1]*(T(1) - t) + v1[1]*t,
-            v0[2]*(T(1) - t) + v1[2]*t,
-            v0[3]*(T(1) - t) + v1[3]*t };    
-}
-
-template <typename T, typename IndexType>
-std::array<Eigen::Vector3<T>, 4>
-get_tet_verts(int tet_index, const T *V0, const T *V1, const IndexType *tets, T t)
-{
+    std::array<Eigen::Vector<T,DIM>, PDIM> v;
+    for (int i = 0; i < PDIM; ++i) {
+        Eigen::Vector<T,DIM> v0(V0);
+        //for (auto )
+        
+    }
+/*
     Eigen::Vector4i tet(tets[tet_index*4+0], tets[tet_index*4+1], tets[tet_index*4+2], tets[tet_index*4+3]);
     std::array<Eigen::Vector3<T>, 4> v0 = {
         Eigen::Vector3<T>(V0[tet[0]*3+0], V0[tet[0]*3+1], V0[tet[0]*3+2]),
@@ -177,6 +175,19 @@ get_tet_verts(int tet_index, const T *V0, const T *V1, const IndexType *tets, T 
             v0[1]*(T(1) - t) + v1[1]*t,
             v0[2]*(T(1) - t) + v1[2]*t,
             v0[3]*(T(1) - t) + v1[3]*t };
+*/
+    return v;
+}
+
+template <int PDIM>
+Eigen::Vector<int,PDIM>
+get_primitive(int prim_index, const int *primitives)
+{
+    Eigen::Vector<int,PDIM> prim;
+    for (int i = 0; i<PDIM; ++i) {
+        prim[i] = primitives[prim_index * PDIM + i];
+    }
+    return prim;
 }
 
 } // ns mcl

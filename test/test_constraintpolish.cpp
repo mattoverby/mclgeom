@@ -19,7 +19,7 @@ main(int argc, char* argv[])
 
     typedef Matrix<double, Dynamic, Dynamic, RowMajor> RowMatrixXd;
     typedef Matrix<int, Dynamic, Dynamic, RowMajor> RowMatrixXi;
-    RowMatrixXd V;
+    RowMatrixXd V, V0;
     RowMatrixXi T;
 
     // Load mesh
@@ -30,6 +30,7 @@ main(int argc, char* argv[])
             std::cout << "Failed to load " << MCLGEOM_ROOT_DIR "/test/armadillo_3k" << std::endl;
             return EXIT_FAILURE;
         }
+        V0 = inV;
         V = inV;
         T = inT;
     }
@@ -38,7 +39,8 @@ main(int argc, char* argv[])
     for (int i = 0; i < 10; ++i)
     {
         int tet_index = (i * 10) % T.rows();
-        auto v = mcl::get_tet_verts(tet_index, V.data(), V.data(), T.data(), 1.0);
+        auto stencil = mcl::get_primitive<4>(tet_index, T.data());
+        auto v = mcl::get_verts<double,3,4>(V.data(), V.data(), stencil.data(), 1.0);
         Vector3d n = mcl::triangle_normal(v[1], v[2], v[3]);
         double h = n.dot(v[0]-v[1]);
         v[0] -= 2.0 * h * n;
@@ -47,6 +49,8 @@ main(int argc, char* argv[])
     }
 
     // Gather constraints
+    mcl::InequalityConstraintSet<double,3> constraint_set;
+    constraint_set.add_inversions(V.data(), V0.data(), T.data(), T.rows());
 
 
     return EXIT_SUCCESS;
