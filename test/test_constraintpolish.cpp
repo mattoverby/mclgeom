@@ -51,7 +51,7 @@ main(int argc, char* argv[])
     // Gather constraints
     mcl::InequalityConstraintSet<double,3> constraint_set;
     constraint_set.add_inversions(V.data(), V0.data(), T.data(), T.rows());
-
+    constraint_set.sort();
 
     return EXIT_SUCCESS;
 }

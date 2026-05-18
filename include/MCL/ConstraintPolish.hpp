@@ -88,6 +88,12 @@ public:
     /// @brief Group all constraints that share vertices, i.e., constraint (impact) zone
     void sort()
     {
+        zones.clear();
+        zone_stencils.clear();
+        if (num_constraints() == 0) {
+            return;
+        }
+
         // Disjoint set to find connected stencils
         DisjointSets dj(num_constraints());
         for (auto &c : volume_constraints) {
@@ -99,8 +105,6 @@ public:
         // Sort into zones
         std::vector<int> parent_to_zone_index;
         parent_to_zone_index.reserve(num_constraints()/4);
-        zones.clear();
-        zone_stencils.clear();
         for (auto &c : volume_constraints) {
             int parent = dj.find(c.stencil[0]);
             while(parent >= parent_to_zone_index.size()) {
@@ -114,7 +118,11 @@ public:
                 zone_stencils.emplace_back();
             }
 
-            //zones[parent_to_zone_index[parent]].emplace_back()
+            int zone_index = parent_to_zone_index[parent];
+            zones[zone_index].emplace_back(c.index);
+            for (int i = 0; i<DIM+1; ++i) {
+                zone_stencils[zone_index].emplace_back(c.stencil[i]);
+            }
         }
     }
 };
@@ -124,7 +132,7 @@ public:
 //
 
 template<typename T, int DIM>
-VolumeConstraint<T,DIM>::VolumeConstraint(const T* x, const Eigen::Vector<int, DIM+1> stencil_, int index_, T scaling_) : stencil(stencil_), index(index_) scaling(scaling_)
+VolumeConstraint<T,DIM>::VolumeConstraint(const T* x, const Eigen::Vector<int, DIM+1> stencil_, int index_, T scaling_) : stencil(stencil_), index(index_), scaling(scaling_)
 {
     if (scaling <= T(0)) {
         auto verts = get_verts<T,DIM,DIM+1>(x, stencil.data());
