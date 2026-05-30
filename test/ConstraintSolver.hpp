@@ -4,8 +4,8 @@
 #ifndef MCL_GEOM_CONSTRAINT_POLISH_HPP
 #define MCL_GEOM_CONSTRAINT_POLISH_HPP 1
 
-#include "ConstraintZone.hpp"
-#include "LevenbergMarquardt.hpp"
+#include <MCL/ConstraintZone.hpp>
+#include <MCL/LevenbergMarquardt.hpp>
 
 #include <Eigen/Core>
 

@@ -52,14 +52,14 @@ class ConstraintZone
     std::vector<int> stencil;                     ///< local -> global vertex indices
     std::unordered_map<int, int> global_to_local; ///< global -> local vertex indices
 
-    /// @brief Destructor
-    ~ConstraintZone() = default;
-
     /// @brief Constructor
     ConstraintZone() = default;
 
     /// @brief Constructor
     ConstraintZone(int constraint_index, const int* sten, int stencil_size);
+
+    /// @brief Destructor
+    ~ConstraintZone() = default;
 
     /// @brief Merges another zone into this one
     void merge(const ConstraintZone& zone);

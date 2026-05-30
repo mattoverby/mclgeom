@@ -1,6 +1,6 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
-#include <MCL/ConstraintPolish.hpp>
+#include "ConstraintSolver.hpp"
 
 #include <MCL/AssertHandler.hpp>
 #include <MCL/MicroTimer.hpp>
