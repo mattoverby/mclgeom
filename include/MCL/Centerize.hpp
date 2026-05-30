@@ -105,7 +105,6 @@ centerize_and_scale(Eigen::MatrixBase<DerivedV>& V, T radius)
         return scale;
     }
     return T(1);
-
 }
 
 } // end ns mcl

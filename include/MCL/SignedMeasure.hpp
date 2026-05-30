@@ -9,27 +9,27 @@
 namespace mcl {
 
 /// @brief Returns the signed area of a 2D triangle
-template <typename T>
+template<typename T>
 inline T
 signed_triangle_area(const Eigen::Vector2<T>& p1, const Eigen::Vector2<T>& p2, const Eigen::Vector2<T>& p3);
 
 /// @brief Returns (unscaled) first derivative of 2D signed triangle area
-template <typename T>
+template<typename T>
 inline std::array<Eigen::Vector2<T>, 3>
 signed_triangle_area_gradients(const Eigen::Vector2<T>& p1, const Eigen::Vector2<T>& p2, const Eigen::Vector2<T>& p3);
 
 /// @brief Returns the 2D triangle perimeter
-template <typename T>
+template<typename T>
 inline T
 triangle_perimeter(const Eigen::Vector2<T>& p1, const Eigen::Vector2<T>& p2, const Eigen::Vector2<T>& p3);
 
 /// @brief Returns the 2D triangle area
-template <typename T>
+template<typename T>
 inline T
 triangle_area(const Eigen::Vector3<T>& p1, const Eigen::Vector3<T>& p2, const Eigen::Vector3<T>& p3);
 
 /// @brief Returns signed volume of the tet
-template <typename T>
+template<typename T>
 inline T
 signed_tet_volume(const Eigen::Vector3<T>& p1,
                   const Eigen::Vector3<T>& p2,
@@ -37,15 +37,15 @@ signed_tet_volume(const Eigen::Vector3<T>& p1,
                   const Eigen::Vector3<T>& p4);
 
 /// @brief Returns (unscaled) first derivative of signed tet volume
-template <typename T>
+template<typename T>
 inline std::array<Eigen::Vector3<T>, 4>
 signed_tet_volume_gradients(const Eigen::Vector3<T>& p1,
                             const Eigen::Vector3<T>& p2,
                             const Eigen::Vector3<T>& p3,
                             const Eigen::Vector3<T>& p4);
 
-/// @brief Returns the tet surface area                            
-template <typename T>
+/// @brief Returns the tet surface area
+template<typename T>
 inline T
 tet_surface_area(const Eigen::Vector3<T>& p1,
                  const Eigen::Vector3<T>& p2,
@@ -53,33 +53,32 @@ tet_surface_area(const Eigen::Vector3<T>& p1,
                  const Eigen::Vector3<T>& p4);
 
 /// @brief Helper accessor returns vertex refs
-template <typename T, int DIM, int PDIM>
+template<typename T, int DIM, int PDIM>
 inline std::array<Eigen::Vector<T, DIM>, PDIM>
-get_verts(const T *V, const int *stencil);
+get_verts(const T* V, const int* stencil);
 
 /// @brief Helper accessor returns vertices x = x0*(1-t) + x1*t
-template <typename T, int DIM, int PDIM>
-inline std::array<Eigen::Vector<T,DIM>, PDIM>
-get_verts_at_delta(const T *V0, const T *V1, const int *stencil, T t);
+template<typename T, int DIM, int PDIM>
+inline std::array<Eigen::Vector<T, DIM>, PDIM>
+get_verts_at_delta(const T* V0, const T* V1, const int* stencil, T t);
 
 /// @brief Helper accessor returns the primitive
-template <int PDIM>
+template<int PDIM>
 inline Eigen::Vector<int, PDIM>
-get_primitive(int prim_index, const int *primitives);
-
+get_primitive(int prim_index, const int* primitives);
 
 //
 // Implementation
 //
 
-template <typename T>
+template<typename T>
 T
 signed_triangle_area(const Eigen::Vector2<T>& p1, const Eigen::Vector2<T>& p2, const Eigen::Vector2<T>& p3)
 {
     return T(0.5) * (-p2[0] * p1[1] + p3[0] * p1[1] + p1[0] * p2[1] - p3[0] * p2[1] - p1[0] * p3[1] + p2[0] * p3[1]);
 }
 
-template <typename T>
+template<typename T>
 std::array<Eigen::Vector2<T>, 3>
 signed_triangle_area_gradients(const Eigen::Vector2<T>& a, const Eigen::Vector2<T>& b, const Eigen::Vector2<T>& c)
 {
@@ -90,7 +89,7 @@ signed_triangle_area_gradients(const Eigen::Vector2<T>& a, const Eigen::Vector2<
     return g;
 }
 
-template <typename T>
+template<typename T>
 T
 triangle_perimeter(const Eigen::Vector2<T>& p1, const Eigen::Vector2<T>& p2, const Eigen::Vector2<T>& p3)
 {
@@ -98,7 +97,7 @@ triangle_perimeter(const Eigen::Vector2<T>& p1, const Eigen::Vector2<T>& p2, con
 }
 
 // https://en.wikipedia.org/wiki/Heron%27s_formula
-template <typename T>
+template<typename T>
 T
 triangle_area(const Eigen::Vector3<T>& p1, const Eigen::Vector3<T>& p2, const Eigen::Vector3<T>& p3)
 {
@@ -109,7 +108,7 @@ triangle_area(const Eigen::Vector3<T>& p1, const Eigen::Vector3<T>& p2, const Ei
     return std::sqrt(s * (s - a) * (s - b) * (s - c));
 }
 
-template <typename T>
+template<typename T>
 T
 signed_tet_volume(const Eigen::Vector3<T>& p0,
                   const Eigen::Vector3<T>& p1,
@@ -123,7 +122,7 @@ signed_tet_volume(const Eigen::Vector3<T>& p0,
     return T(1.0 / 6.0) * edges.determinant();
 }
 
-template <typename T>
+template<typename T>
 std::array<Eigen::Vector3<T>, 4>
 signed_tet_volume_gradients(const Eigen::Vector3<T>& p0,
                             const Eigen::Vector3<T>& p1,
@@ -139,7 +138,7 @@ signed_tet_volume_gradients(const Eigen::Vector3<T>& p0,
     return grads;
 }
 
-template <typename T>
+template<typename T>
 T
 tet_surface_area(const Eigen::Vector3<T>& p1,
                  const Eigen::Vector3<T>& p2,
@@ -153,9 +152,9 @@ tet_surface_area(const Eigen::Vector3<T>& p1,
     return (a1 + a2 + a3 + a4);
 }
 
-template <typename T, int DIM, int PDIM>
+template<typename T, int DIM, int PDIM>
 std::array<Eigen::Vector<T, DIM>, PDIM>
-get_verts(const T *V, const int *stencil)
+get_verts(const T* V, const int* stencil)
 {
     std::array<Eigen::Vector<T, DIM>, PDIM> v;
     for (int i = 0; i < PDIM; ++i) {
@@ -164,22 +163,22 @@ get_verts(const T *V, const int *stencil)
     return v;
 }
 
-template <typename T, int DIM, int PDIM>
-std::array<Eigen::Vector<T,DIM>, PDIM>
-get_verts_at_delta(const T *V0, const T *V1, const int *stencil, T t)
+template<typename T, int DIM, int PDIM>
+std::array<Eigen::Vector<T, DIM>, PDIM>
+get_verts_at_delta(const T* V0, const T* V1, const int* stencil, T t)
 {
-    auto verts_t0 = get_verts<T,DIM,PDIM>(V0, stencil);
-    auto verts_t1 = get_verts<T,DIM,PDIM>(V1, stencil);
-    std::array<Eigen::Vector<T,DIM>, PDIM> v;
+    auto verts_t0 = get_verts<T, DIM, PDIM>(V0, stencil);
+    auto verts_t1 = get_verts<T, DIM, PDIM>(V1, stencil);
+    std::array<Eigen::Vector<T, DIM>, PDIM> v;
     for (int i = 0; i < PDIM; ++i) {
         v[i] = verts_t0[i] * (T(1) - t) + verts_t1[i] * t;
     }
     return v;
 }
 
-template <int PDIM>
+template<int PDIM>
 Eigen::Vector<int, PDIM>
-get_primitive(int prim_index, const int *primitives)
+get_primitive(int prim_index, const int* primitives)
 {
     return Eigen::Map<const Eigen::Vector<int, PDIM>>(primitives + prim_index * PDIM).eval();
 }
