@@ -49,7 +49,7 @@ main(int argc, char* argv[])
     }
 
     // Solve inversions
-    mcl::InequalityConstraintSet<double,3> constraint_set;
+    mcl::ConstraintSolver<double,3> constraint_set;
     int iters = constraint_set.solve(V.data(), V0.data(), V.rows(), T.data(), T.rows());
     printf("Solved in %d iterations\n", iters);
 
@@ -58,7 +58,10 @@ main(int argc, char* argv[])
         auto stencil = mcl::get_primitive<4>(i, T.data());
         auto v0 = mcl::get_verts<double,3,4>(V0.data(), stencil.data());
         auto v = mcl::get_verts<double,3,4>(V.data(), stencil.data());
-        mclAssert(mcl::signed_tet_volume(v[0], v[1], v[2], v[3]) > 0.0);
+        double signed_volume = mcl::signed_tet_volume(v[0], v[1], v[2], v[3]);
+        std::stringstream err;
+        err << stencil.transpose() << " " << signed_volume;
+        mclAssert(signed_volume > 0.0, err.str());
     }
 
     return EXIT_SUCCESS;
