@@ -20,9 +20,9 @@ inline int
 get_center_index(const Eigen::MatrixBase<DerivedV>& V);
 
 /// @brief Centerizes and scales all of the vertices in V to a target radius. Returns radius.
-template<typename DerivedV, typename T>
-inline T
-centerize_and_scale(Eigen::MatrixBase<DerivedV>& V, T radius);
+template<typename DerivedV>
+typename DerivedV::Scalar
+centerize_and_scale(Eigen::PlainObjectBase<DerivedV>& V, typename DerivedV::Scalar target_radius);
 
 //
 // Implemenation
@@ -70,41 +70,32 @@ get_center_index(const Eigen::MatrixBase<DerivedV>& V)
     return min_idx;
 }
 
-template<typename DerivedV, typename T>
-T
-centerize_and_scale(Eigen::MatrixBase<DerivedV>& V, T radius)
+template<typename DerivedV>
+typename DerivedV::Scalar
+centerize_and_scale(Eigen::PlainObjectBase<DerivedV>& V, typename DerivedV::Scalar target_radius)
 {
-    using namespace Eigen;
-    centerize(V);
-    int dim = V.cols();
-    int nv = V.rows();
-    if (nv <= 1 || dim < 2 || dim > 3) {
-        return 1.0;
+    using Scalar = typename DerivedV::Scalar;
+
+    if (V.rows() == 0) {
+        return Scalar(1);
     }
 
-    auto get_v3 = [&](int idx) {
-        Vector3<T> v = Vector3<T>::Zero();
-        for (int i = 0; i < dim; ++i) {
-            v[i] = V(idx, i);
-        }
-        return v;
-    };
+    // center at centroid
+    V.rowwise() -= V.colwise().mean();
 
-    T rad = T(0);
-    for (int i = 0; i < nv; ++i) {
-        Vector3<T> v = get_v3(i);
-        T d = v.norm();
-        if (d > rad) {
-            rad = d;
-        }
+    Scalar radius = Scalar(0);
+    for (Eigen::Index i = 0; i < V.rows(); ++i) {
+        radius = std::max(radius, V.row(i).norm());
     }
 
-    if (rad > T(0)) {
-        T scale = radius / rad;
-        V *= scale;
-        return scale;
+    if (radius <= Scalar(0)) {
+        return Scalar(1);
     }
-    return T(1);
+
+    Scalar scale = target_radius / radius;
+    V *= scale;
+
+    return scale;
 }
 
 } // end ns mcl
