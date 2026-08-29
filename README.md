@@ -44,7 +44,7 @@ double result = solver.minimize(x);
 
 ### Karush-Kuhn-Tucker (KKT) Solver
 
-Conjugate gradient-based solver for saddle-point systems (linear constrained optimization).
+Conjugate gradient-based solver for a KKT matrix derived from an equality-constrained quadratic program `(1/2) x'Ax - b'x s.t. Cx = d`
 
 ```cpp
 mcl::KKTSolver<VectorXd, SparseMatrixXd> kkt;
@@ -53,11 +53,11 @@ int iters = kkt.solve(A, b, C, d, x, y);
 
 ### Multi-Color Gauss-Seidel
 
-Parallel iterative solver for `Ax = b` with optional projection operators. Uses graph coloring for thread-safe updates.
+Parallel iterative solver for `Ax = b` with optional projection operators. Uses graph coloring for parallel updates.
 
 ```cpp
 mcl::MultiColorGaussSeidel<MatrixXd> mcgs;
-mcgs.project = [](int i, MatrixXd& X) { /* optionally enforce constraints */ };
+mcgs.project = [](int i, MatrixXd& X) { X(i,1) = std::max(X(i,1), 0.0); }; // e.g., non-negative y
 mcl::graph_color(A, colors);
 int iters = mcgs.solve(A, B, X, colors);
 ```
@@ -69,7 +69,7 @@ Damped least-squares solver for underdetermined systems `min ||f(x)||^2`. Suitab
 ```cpp
 mcl::LevenbergMarquardt<VectorXd, SparseMatrixXd> lm;
 lm.objective = [&](const VectorXd& x, VectorXd& residual, SparseMatrixXd& J, bool need_J) {
-    /* compute residual and optionally Jacobian J */
+    // compute residual and optionally Jacobian J
 };
 double result = lm.iterate(x);
 ```
@@ -81,20 +81,22 @@ double result = lm.iterate(x);
 Nonlinear material energy densities for deformable bodies. Includes neo-Hookean, St. Venant-Kirchhoff, ARAP, and symmetric Dirichlet.
 
 ```cpp
+mcl::signed_svd(F, S, U, V);
 using Model = mcl::StableNeoHookean<3, double>;
-double energy = Model::energy_density(lame_params, F);
-VectorXd gradient; // call Model::gradient(lame_params, F, gradient)
-MatrixXd hessian; // call Model::hessian(lame_params, F, hessian)
+double psi = Model::energy_density(lame, S);
+// Hessian of psi with respect to principal stretches:
+Matrix3d H;
+Model::hessian(lame, S, H);
 ```
 
 ### Bending Models
 
-Cloth and surface bending energies. Includes quadratic Bergou model (Q) and linear Volino-Magnenat-Thalmann model (K0).
+Cloth and surface bending energies. Includes "A Quadratic Bending Model for Inextensible Surfaces", Bergou et al. and "Simple Linear Bending Stiffness in Particle Systems", by Volino and Magnenat-Thalmann.
 
 ```cpp
-mcl::make_hinges(F, H); // Extract hinge edges from triangle mesh
+mcl::make_hinges(F, H); // Extract hinge edges (4-tuples of shaere triangles) from triangle mesh
 auto Q = mcl::quadratic_bend_Q(x0, x1, x2, x3);
-auto K0 = mcl::quadratic_bend_K0(x0, x1, x2, x3);
+auto alpha = mcl::linear_bend_alpha(x0, x1, x2, x3);
 ```
 
 ## License

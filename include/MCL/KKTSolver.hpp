@@ -15,7 +15,6 @@ namespace mcl {
 /// [ A  C^T ] [ x ] = [ b ]
 /// [ C  0   ] [ y ] = [ d ]
 /// From DOI 10.1109/TVCG.2017.2730875, Alg. 2
-/// Please cite above paper if used.
 template<typename VectorType, typename SparseMatrixType>
 class KKTSolver
 {
