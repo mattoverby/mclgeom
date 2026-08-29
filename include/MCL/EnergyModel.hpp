@@ -38,7 +38,7 @@ class XuSplineModel
     static void hessian(const XuSpline<T>* s, const VecD& x, MatD& H);
 };
 
-// Simplified Stable Neo-Hookean (similar to Smith et al. '17)
+// Simplified Stable Neo-Hookean (variant of Smith et al. '17)
 template<int DIM, typename T>
 class StableNeoHookean
 {

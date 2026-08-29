@@ -20,6 +20,10 @@ if (MCLGEOM_UNIT_TESTS)
 
     find_package(TBB REQUIRED)
 
+    add_executable(test_constraintpolish ${CMAKE_CURRENT_SOURCE_DIR}/test_constraintpolish.cpp)
+    target_link_libraries(test_constraintpolish PUBLIC mcl::geom TBB::tbb)
+    add_test(NAME TestConstraintPolish COMMAND test_constraintpolish)
+
     add_executable(test_projection ${CMAKE_CURRENT_SOURCE_DIR}/test_projection.cpp)
     target_link_libraries(test_projection PUBLIC mcl::geom)
     add_test(NAME TestProjection COMMAND test_projection)

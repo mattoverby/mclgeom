@@ -48,8 +48,7 @@ test_mesh_deform()
 
     igl::edges(T, E);
     int ne = E.rows();
-    mcl::centerize(V0);
-    mcl::scale_to_sphere(V0, 1);
+    mcl::centerize_and_scale(V0, 1);
     V1 = V0;
     for (int i = 0; i < V1.rows(); ++i)
         V1.row(i) += RowVector3d::Ones() * (double(i) / double(V1.rows()));
