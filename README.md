@@ -73,7 +73,7 @@ kkt.solve_Axb = [&](const VectorXd &b, VectorXd &x) -> void {
 
 ### Multi-Color Gauss-Seidel
 
-Parallel iterative solver for `Ax = b` with optional projection operators. Uses graph coloring for parallel updates. See [Overby et al. 2017](https://mattoverby.net/pages/admmpd_abstract.html) for details.
+Parallel iterative solver for `Ax = b` with optional projection operators. Uses graph coloring for parallel updates following [Grable and Panconesi, 2000](https://doi.org/10.1006/jagm.2000.1097). See [Overby et al. 2017](https://mattoverby.net/pages/admmpd_abstract.html) for full details.
 
 ```cpp
 mcl::MultiColorGaussSeidel<MatrixXd> mcgs;
@@ -84,7 +84,7 @@ int iters = mcgs.solve(A, B, X, colors);
 
 ### Levenberg-Marquardt
 
-Damped least-squares solver for underdetermined systems `min (1/2)||f(x)||^2`. Suitable for over-determined residual problems. It is *kind of* Levenberg-Marquardt, see [Overby et al. 2021](https://mattoverby.net/pages/gini_abstract.html) for details.
+Damped least-squares solver for underdetermined systems `min (1/2)||f(x)||^2`. Suitable for over-determined residual problems. It is *kind of* Levenberg-Marquardt, see [Overby et al. 2021](https://mattoverby.net/pages/gini_abstract.html) for full details.
 
 ```cpp
 mcl::LevenbergMarquardt<VectorXd, SparseMatrixXd> lm;
@@ -101,6 +101,7 @@ double result = lm.iterate(x);
 Nonlinear material energy densities for deformable bodies. Includes neo-Hookean, St. Venant-Kirchhoff, ARAP, symmetric Dirichlet, and the spline model by [Xu et al 2015](https://doi.org/10.1145/2766917). See the [admm-pd](https://github.com/mattoverby/admm-elastic) source code for an example of how they are used.
 
 ```cpp
+mcl::Lame<double> lame = mcl::Lame<double>::soft_rubber();
 mcl::signed_svd(F, S, U, V);
 using Model = mcl::StableNeoHookean<3, double>;
 double psi = Model::energy_density(lame, S);
