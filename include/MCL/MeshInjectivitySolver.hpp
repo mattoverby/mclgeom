@@ -1,8 +1,8 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
 
-#ifndef MCL_GEOM_CONSTRAINT_SOLVER_HPP
-#define MCL_GEOM_CONSTRAINT_SOLVER_HPP 1
+#ifndef MCL_GEOM_CONSTRAINT_POLISHER_HPP
+#define MCL_GEOM_CONSTRAINT_POLISHER_HPP 1
 
 #include <MCL/ConstraintZone.hpp>
 #include <MCL/LevenbergMarquardt.hpp>
@@ -17,11 +17,12 @@ namespace mcl {
 
 /// @brief Solves global injectivity constraints for mesh parameterization and deformation.
 /// See Overby et al. 2021 (https://doi.org/10.1111/cgf.14361) for details.
+/// This is a reimplementation from the original code release and I haven't fully vetted it yet.
 /// TODO: Collision constraints.
 /// @tparam T scalar type
 /// @tparam DIM dimension of vertices, with primitive dimension DIM + 1
 template<typename T, int DIM>
-class InjectiveConstraintSolver
+class MeshInjectivitySolver
 {
   public:
     std::unordered_set<int> primitives_in_set; ///< primitive indices of volume constraints
@@ -192,6 +193,7 @@ class InjectiveConstraintSolver
         }
     }
 
+    /// @brief Checks if all constraints are sufficiently solved.
     bool check_termination(const T* global_x)
     {
         for (auto& c : volume_constraints) {
@@ -206,4 +208,4 @@ class InjectiveConstraintSolver
 
 } // end ns mcl
 
-#endif // MCL_GEOM_CONSTRAINT_POLISH_HPP
+#endif // MCL_GEOM_CONSTRAINT_POLISHER_HPP

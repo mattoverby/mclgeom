@@ -1,7 +1,6 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
-#include "ConstraintSolver.hpp"
-
+#include <MCL/MeshInjectivitySolver.hpp>
 #include <MCL/AssertHandler.hpp>
 #include <MCL/MicroTimer.hpp>
 #include <MCL/Normal.hpp>
@@ -48,7 +47,7 @@ main(int argc, char* argv[])
     }
 
     // Solve inversions
-    mcl::InjectiveConstraintSolver<double, 3> solver;
+    mcl::MeshInjectivitySolver<double, 3> solver;
     int iters = solver.solve(V.data(), V0.data(), V.rows(), T.data(), T.rows());
     printf("Solved in %d iterations\n", iters);
 
