@@ -1,7 +1,7 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
-#include <MCL/MeshInjectivitySolver.hpp>
 #include <MCL/AssertHandler.hpp>
+#include <MCL/MeshInjectivitySolver.hpp>
 #include <MCL/MicroTimer.hpp>
 #include <MCL/Normal.hpp>
 #include <MCL/ReadEleNode.hpp>
