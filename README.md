@@ -1,7 +1,7 @@
 # mclgeom
 
 Header-only functions and tools for nonlinear optimization, physics-based animation, and general mesh processing.
-Most of this code was implemented throughout my PhD research, so please use the citations within the file if used. Documentation is a WIP.
+Most of this code was implemented throughout my PhD research, so please use the citations within the file if used. Documentation and unit testing is a WIP.
 
 By Matt Overby ([https://mattoverby.net](https://mattoverby.net))
 
@@ -9,7 +9,7 @@ By Matt Overby ([https://mattoverby.net](https://mattoverby.net))
 
 ![Tests](https://github.com/mattoverby/mclgeom/actions/workflows/build_and_test.yml/badge.svg)
 
-Nearly every file is self-contained and can simply be dropped into your own programs. Many of the components use the following dependencies:
+Files are implemented with minimal dependencies and can simply be dropped into your own projects. Many of the components use the following dependencies:
 - Eigen ([https://gitlab.com/libeigen/eigen](https://gitlab.com/libeigen/eigen))
 - Thread Building Blocks ([https://github.com/uxlfoundation/oneTBB](https://github.com/uxlfoundation/oneTBB))
 
@@ -28,32 +28,52 @@ There are several general purpose solvers for common problems in computer graphi
 
 ### L-BFGS
 
-Quasi-Newton optimizer for general nonlinear minimization problems.
+Quasi-Newton optimizer for general nonlinear minimization problems. The variable may be a matrix or a vector. Only one function must be defined for both the objective and/or gradient. Other components, e.g., linesearch and convergence checking, have defaults that can be overwritten.
 
 ```cpp
 mcl::LBFGS<MatrixXd> solver;
-// One function must be defined for both the objective and/or gradient.
-// The gradient computation can be skipped if x.size() != g.size().
+
+// The gradient computation can be skipped if x.size() != g.size(), e.g., when called for linesearch.
 solver.gradient = [&](const MatrixXd& x, MatrixXd& g) -> double {
     double obj = compute_objective(x);
     if (g.rows() == x.rows()) g = compute_gradient(x);
     return obj;
 };
 double result = solver.minimize(x);
+
+// Linesearch is the function responsible for updating the solver variable,
+// and weak Wolf bisection is used by default. Custom functions can be used, e.g.,
+solver.linesearch = [&](MatrixXd& x, MatrixXd& g, MatrixXd &p, double& alpha) -> double {
+    MatrixXd x0 = x;
+    x = x0 + p * alpha;
+    double obj0 = compute_objective(x0);
+    double obj1 = compute_objective(x);
+    while (obj1 > obj0) {
+        alpha *= 0.5;
+        x = x0 + p * alpha;
+        obj1 = compute_objective(x);
+    }
+    return obj1;
+};
 ```
 
 ### Karush-Kuhn-Tucker (KKT) Solver
 
-Conjugate gradient-based solver for a KKT matrix derived from an equality-constrained quadratic program `(1/2) x'Ax - b'x s.t. Cx = d`
+Conjugate gradient-based solver for a KKT matrix derived from an equality-constrained quadratic program `(1/2) x'Ax - b'x s.t. Cx = d`. See [Overby et al. 2017](https://mattoverby.net/pages/admmpd_abstract.html) for details.
 
 ```cpp
-mcl::KKTSolver<VectorXd, SparseMatrixXd> kkt;
+mcl::KKTSolver<VectorXd, SparseMatrix<double>> kkt;
 int iters = kkt.solve(A, b, C, d, x, y);
+
+// An operator can be used to solve Ax=b, e.g. for custom or precomputed factorizations.
+kkt.solve_Axb = [&](const VectorXd &b, VectorXd &x) -> void {
+    x = myLDLT.solve(b);
+};
 ```
 
 ### Multi-Color Gauss-Seidel
 
-Parallel iterative solver for `Ax = b` with optional projection operators. Uses graph coloring for parallel updates.
+Parallel iterative solver for `Ax = b` with optional projection operators. Uses graph coloring for parallel updates. See [Overby et al. 2017](https://mattoverby.net/pages/admmpd_abstract.html) for details.
 
 ```cpp
 mcl::MultiColorGaussSeidel<MatrixXd> mcgs;
@@ -64,7 +84,7 @@ int iters = mcgs.solve(A, B, X, colors);
 
 ### Levenberg-Marquardt
 
-Damped least-squares solver for underdetermined systems `min ||f(x)||^2`. Suitable for over-determined residual problems.
+Damped least-squares solver for underdetermined systems `min (1/2)||f(x)||^2`. Suitable for over-determined residual problems. It is *kind of* Levenberg-Marquardt, see [Overby et al. 2021](https://mattoverby.net/pages/gini_abstract.html) for details.
 
 ```cpp
 mcl::LevenbergMarquardt<VectorXd, SparseMatrixXd> lm;
@@ -78,7 +98,7 @@ double result = lm.iterate(x);
 
 ### Energy Models
 
-Nonlinear material energy densities for deformable bodies. Includes neo-Hookean, St. Venant-Kirchhoff, ARAP, and symmetric Dirichlet.
+Nonlinear material energy densities for deformable bodies. Includes neo-Hookean, St. Venant-Kirchhoff, ARAP, symmetric Dirichlet, and the spline model by [Xu et al 2015](https://doi.org/10.1145/2766917). See the [admm-pd](https://github.com/mattoverby/admm-elastic) source code for an example of how they are used.
 
 ```cpp
 mcl::signed_svd(F, S, U, V);
@@ -94,9 +114,19 @@ Model::hessian(lame, S, H);
 Cloth and surface bending energies. Includes "A Quadratic Bending Model for Inextensible Surfaces", Bergou et al. and "Simple Linear Bending Stiffness in Particle Systems", by Volino and Magnenat-Thalmann.
 
 ```cpp
-mcl::make_hinges(F, H); // Extract hinge edges (4-tuples of shaere triangles) from triangle mesh
+mcl::make_hinges(F, H); // Extract hinge edges (4-tuples of shared triangles) from a triangle mesh
 auto Q = mcl::quadratic_bend_Q(x0, x1, x2, x3);
 auto alpha = mcl::linear_bend_alpha(x0, x1, x2, x3);
+```
+
+### Globally Injective Mappings
+
+The standalone "constraint polisher" from [Overby et al. 2021](https://mattoverby.net/pages/gini_abstract.html) can be used to solve global injectivity constraints for mesh parameterization and deformation. Namely, it rapidly and robustly uninverts tets and resolves collisions in a tetrahedral mesh with minimal delta.
+
+```cpp
+Matrix<double, Dynamic, Dynamic, RowMajor> V = /*has inverted tets*/, V_rest = /*...*/;
+mcl::InjectiveConstraintSolver<double, 3> solver;
+int iters = solver.solve(V.data(), V0.data(), V.rows(), tets.data(), tets.rows());
 ```
 
 ## License
