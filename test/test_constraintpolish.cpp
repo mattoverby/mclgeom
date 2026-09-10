@@ -48,8 +48,8 @@ main(int argc, char* argv[])
     }
 
     // Solve inversions
-    mcl::ConstraintSolver<double, 3> constraint_set;
-    int iters = constraint_set.solve(V.data(), V0.data(), V.rows(), T.data(), T.rows());
+    mcl::InjectiveConstraintSolver<double, 3> solver;
+    int iters = solver.solve(V.data(), V0.data(), V.rows(), T.data(), T.rows());
     printf("Solved in %d iterations\n", iters);
 
     // Verify all tets have a positive volume
