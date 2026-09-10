@@ -116,7 +116,7 @@ get_unique_vertices(const Eigen::MatrixBase<DerivedP>& P)
     std::vector<int> vertices;
     vertices.reserve(P.size());
     int P_size = P.size();
-    for (int i = 0; i<P_size; ++i) {
+    for (int i = 0; i < P_size; ++i) {
         int index = P.derived().data()[i];
         if (!found[index]) {
             found[index] = true;

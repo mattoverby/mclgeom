@@ -1,6 +1,6 @@
 // Copyright Matt Overby 2022.
 // Distributed under the MIT License.
-// adapted from (https://r3dux.org)
+// adapted from (https://r3dux.org) about a million years ago. This implementation is OLD.
 
 // Example use:
 //	Shader myshader;

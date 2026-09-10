@@ -1,18 +1,35 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
 
-#ifndef MCL_CENTERIZE_HPP
-#define MCL_CENTERIZE_HPP 1
+#ifndef MCL_GEOM_CENTERIZE_HPP
+#define MCL_GEOM_CENTERIZE_HPP 1
 
 #include <Eigen/Core>
 #include <limits>
 
 namespace mcl {
 
-// Moves all of the vertices so that the center of the mesh
-// is at the origin. Returns translation used.
+/// @brief Moves all of the vertices so that the center of the mesh is at the origin.
 template<typename DerivedV>
 inline void
+centerize(Eigen::MatrixBase<DerivedV>& V);
+
+/// @brief Returns the index of the center-most vertex
+template<typename DerivedV>
+inline int
+get_center_index(const Eigen::MatrixBase<DerivedV>& V);
+
+/// @brief Centerizes and scales all of the vertices in V to a target radius. Returns radius.
+template<typename DerivedV>
+typename DerivedV::Scalar
+centerize_and_scale(Eigen::PlainObjectBase<DerivedV>& V, typename DerivedV::Scalar target_radius);
+
+//
+// Implemenation
+//
+
+template<typename DerivedV>
+void
 centerize(Eigen::MatrixBase<DerivedV>& V)
 {
     int cols = V.cols();
@@ -22,9 +39,8 @@ centerize(Eigen::MatrixBase<DerivedV>& V)
     }
 } // end centerize
 
-// Returns the index of the center-most vertex
 template<typename DerivedV>
-inline int
+int
 get_center_index(const Eigen::MatrixBase<DerivedV>& V)
 {
     typedef typename DerivedV::Scalar T;
@@ -54,39 +70,33 @@ get_center_index(const Eigen::MatrixBase<DerivedV>& V)
     return min_idx;
 }
 
-// Scales all of the vertices in V to a target radius.
-// Returns the (uniform) scaling used.
 template<typename DerivedV>
-inline double
-scale_to_sphere(Eigen::MatrixBase<DerivedV>& V, double radius)
+typename DerivedV::Scalar
+centerize_and_scale(Eigen::PlainObjectBase<DerivedV>& V, typename DerivedV::Scalar target_radius)
 {
-    using namespace Eigen;
-    centerize(V);
-    int dim = V.cols();
-    int nv = V.rows();
-    if (nv == 0 || dim < 2 || dim > 3)
-        return 1.0;
+    using Scalar = typename DerivedV::Scalar;
 
-    auto get_v3 = [&](int idx) {
-        Vector3d v = Vector3d::Zero();
-        for (int i = 0; i < dim; ++i)
-            v[i] = V(idx, i);
-        return v;
-    };
-
-    double rad = 1e-20;
-    for (int i = 0; i < nv; ++i) {
-        Vector3d v = get_v3(i);
-        double d = v.norm();
-        if (d > rad)
-            rad = d;
+    if (V.rows() == 0) {
+        return Scalar(1);
     }
 
-    double scale = radius / rad;
-    V *= scale;
-    return scale;
+    // center at centroid
+    V.rowwise() -= V.colwise().mean();
 
-} // end scale to sphere
+    Scalar radius = Scalar(0);
+    for (Eigen::Index i = 0; i < V.rows(); ++i) {
+        radius = std::max(radius, V.row(i).norm());
+    }
+
+    if (radius <= Scalar(0)) {
+        return Scalar(1);
+    }
+
+    Scalar scale = target_radius / radius;
+    V *= scale;
+
+    return scale;
+}
 
 } // end ns mcl
 

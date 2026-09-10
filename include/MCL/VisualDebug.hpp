@@ -167,7 +167,7 @@ VisualDebug::add_points(const MatrixType& p, const MatrixType& c)
     pt_colors.reserve(pt_colors.size() + p.rows());
     for (size_t i = 0; i < p.rows(); ++i) {
         pts.emplace_back(to_vec3d(p.row(i)));
-        Eigen::Vector3i ci = i < c.rows() ? to_vec3d(c.row(i)) : Red;
+        Eigen::Vector3d ci = i < c.rows() ? to_vec3d(c.row(i)) : Red;
         pt_colors.emplace_back(ci);
     }
 }
@@ -194,7 +194,7 @@ VisualDebug::add_lines(const MatrixType& p0, const MatrixType& p1, const MatrixT
     for (size_t i = 0; i < nl; ++i) {
         lines0.emplace_back(to_vec3d(p0.row(i)));
         lines1.emplace_back(to_vec3d(p1.row(i)));
-        Eigen::Vector3i ci = i < c.rows() ? to_vec3d(c.row(i)) : Red;
+        Eigen::Vector3d ci = i < c.rows() ? to_vec3d(c.row(i)) : Red;
         line_colors.emplace_back(ci);
     }
 }
