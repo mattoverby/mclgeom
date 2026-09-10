@@ -42,14 +42,13 @@ class KKTSolver
               VectorType& y)
     {
         // Factorize A if we don't have a function to get x.
-        std::unique_ptr<LDLT> ldlt;
+        auto ldlt_ptr = std::make_shared<LDLT>();
         if (solve_Axb == nullptr) {
-            ldlt = std::make_unique<LDLT>();
-            ldlt->compute(A);
-            if (!ldlt->info() == Eigen::Success) {
+            ldlt_ptr->compute(A);
+            if (ldlt_ptr->info() != Eigen::Success) {
                 return -1;
             }
-            solve_Axb = [&](const VectorType& bt, VectorType& xt) { xt = ldlt->solve(bt); };
+            solve_Axb = [ldlt_ptr](const VectorType& bt, VectorType& xt) { xt = ldlt_ptr->solve(bt); };
         }
 
         // No constraints, just use LDLT
