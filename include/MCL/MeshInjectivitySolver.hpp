@@ -1,8 +1,8 @@
-// Copyright Matt Overby 2021.
+// Copyright Matt Overby 2026.
 // Distributed under the MIT License.
 
-#ifndef MCL_GEOM_CONSTRAINT_POLISHER_HPP
-#define MCL_GEOM_CONSTRAINT_POLISHER_HPP 1
+#ifndef MCL_GEOM_MESH_INJECTIVITY_SOLVER_HPP
+#define MCL_GEOM_MESH_INJECTIVITY_SOLVER_HPP 1
 
 #include <MCL/ConstraintZone.hpp>
 #include <MCL/LevenbergMarquardt.hpp>
@@ -15,7 +15,8 @@
 
 namespace mcl {
 
-/// @brief Solves global injectivity constraints for mesh parameterization and deformation.
+/// @brief A robust solver for global injectivity constraints.
+/// Used to compute foldover-free maps for mesh parameterization and deformation.
 /// See Overby et al. 2021 (https://doi.org/10.1111/cgf.14361) for details.
 /// This is a reimplementation from the original code release and I haven't fully vetted it yet.
 /// TODO: Collision constraints.
@@ -78,7 +79,8 @@ class MeshInjectivitySolver
         }
     }
 
-    /// @brief Moves vertices to best satisfy all constraints.
+    /// @brief Moves vertices to best satisfy all constraints. Note the solver attempts to enforce the target
+    /// volume for all elements, but will exit once all elements have a positive volume.
     /// @return Number of iterations and updates vertices (x)
     int solve(T* x, const T* x_rest, int num_vertices, const int* primitives, int num_primitives)
     {
@@ -129,11 +131,13 @@ class MeshInjectivitySolver
         using VectorType = Eigen::VectorX<T>;
         using MatrixType = Eigen::SparseMatrix<T>;
         LevenbergMarquardt<VectorType, MatrixType> LM;
+        std::vector<Eigen::Triplet<T>> J_triplets;
+        J_triplets.reserve(zone.constraints.size() * (DIM + 1) * DIM);
 
         LM.objective = [&](const VectorType& local_x, VectorType& r, MatrixType& J, bool needJ) -> void {
-            std::vector<Eigen::Triplet<T>> J_triplets;
+
+            J_triplets.clear();
             if (needJ) {
-                J_triplets.reserve(zone.constraints.size() * (DIM + 1) * DIM);
                 J.resize(zone.constraints.size(), local_x.rows());
                 J.setZero();
             }
@@ -208,4 +212,4 @@ class MeshInjectivitySolver
 
 } // end ns mcl
 
-#endif // MCL_GEOM_CONSTRAINT_POLISHER_HPP
+#endif // MCL_GEOM_MESH_INJECTIVITY_SOLVER_HPP

@@ -8,11 +8,12 @@
 #include <Eigen/SVD>
 #include <Eigen/Sparse>
 #include <Eigen/SparseCholesky>
+
 #include <functional>
 
 namespace mcl {
 
-/// @brief Levenberg-Marquard solver for underdetermined systems.
+/// @brief Levenberg-Marquard(-ish) solver for underdetermined systems.
 /// Follows derivations from https://doi.org/10.1111/cgf.14361, Eq. 12.
 /// Solves (1/2)||f(x)||^2, with f : R^n -> R^m
 /// Each iteration computes step: p = -J^T(JJ^T + U)*f(x)
@@ -94,6 +95,9 @@ class LevenbergMarquardt
         x = x0 + alpha * p;
         objective(x, residual, dummy, false);
         T eval_new = T(0.5) * residual.dot(residual);
+        if (!std::isfinite(eval_new)) {
+            return T(-1);
+        }
 
         // Linesearch
         int ls_iter = 0;
@@ -102,6 +106,9 @@ class LevenbergMarquardt
             x = x0 + alpha * p;
             objective(x, residual, dummy, false);
             eval_new = T(0.5) * residual.dot(residual);
+            if (!std::isfinite(eval_new)) {
+                return T(-1);
+            }
             ls_iter++;
             if (ls_iter > options.max_ls_iters) {
                 eval_new = T(-1); // did not converge

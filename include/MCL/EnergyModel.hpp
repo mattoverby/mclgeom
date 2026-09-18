@@ -23,8 +23,8 @@ enum
     ENERGY_MODEL_NUM
 };
 
-// Nonlinear Material Design Using Principal Stretches, Xu et al. 2015.
-// See: MCL/XuSpline.hpp
+/// @brief Nonlinear Material Design Using Principal Stretches, Xu et al. 2015.
+/// See: MCL/XuSpline.hpp
 template<int DIM, typename T>
 class XuSplineModel
 {
@@ -38,7 +38,7 @@ class XuSplineModel
     static void hessian(const XuSpline<T>* s, const VecD& x, MatD& H);
 };
 
-// Simplified Stable Neo-Hookean (variant of Smith et al. '17)
+/// @brief Simplified Stable Neo-Hookean (variant of Smith et al. '17)
 template<int DIM, typename T>
 class StableNeoHookean
 {
@@ -52,7 +52,7 @@ class StableNeoHookean
     static void hessian(const Lame<T>& lame, const VecD& x, MatD& H);
 };
 
-// Classic (isotropic) Neo-Hookean
+/// @brief Classic (isotropic) Neo-Hookean
 template<int DIM, typename T>
 class IsoNeoHookean
 {
@@ -66,14 +66,18 @@ class IsoNeoHookean
     static void hessian(const Lame<T>& lame, const VecD& x, MatD& H);
 };
 
-// SLIM Symmetric Dirichlet
-// f(x) = (||F||^2 + ||F^-1||^2)/2
+/// @brief SLIM Symmetric Dirichlet
+/// f(x) = (||F||^2 + ||F^-1||^2)/2
 template<int DIM, typename T>
 class SymmDirichlet
 {
   protected:
     typedef Eigen::Matrix<T, DIM, 1> VecD;
     typedef Eigen::Matrix<T, DIM, DIM> MatD;
+
+    /// @brief Helper function for more stable pow calls.
+    template <int S>
+    static T pow_int(T scalar);
 
   public:
     static T energy_density(const VecD& x);
@@ -260,12 +264,31 @@ IsoNeoHookean<DIM, T>::hessian(const Lame<T>& lame, const VecD& x, MatD& hess)
 //================================================
 
 template<int DIM, typename T>
+template<int S>
+T
+SymmDirichlet<DIM, T>::pow_int(T scalar)
+{
+    if (std::abs(scalar) < T(1e-10)) {
+        return T(0);
+    }
+    if constexpr (S == -2) {
+        return T(1) / (scalar * scalar);
+    } else if constexpr (S == -3) {
+        return T(1) / (scalar * scalar * scalar);
+    } else if constexpr (S == -4) {
+        return T(1) / (scalar * scalar * scalar * scalar);
+    }
+    return std::pow(scalar, T(S));
+}
+
+template<int DIM, typename T>
 T
 SymmDirichlet<DIM, T>::energy_density(const VecD& x)
 {
     T e = 0;
-    for (int i = 0; i < DIM; ++i)
-        e += x[i] * x[i] + std::pow(x[i], T(-2.0));
+    for (int i = 0; i < DIM; ++i) {
+        e += x[i] * x[i] + pow_int<-2>(x[i]);
+    }
 
     return e;
 }
@@ -277,10 +300,10 @@ SymmDirichlet<DIM, T>::gradient(const VecD& x, VecD& grad)
     T e = 0;
     VecD pow_x;
     for (int i = 0; i < DIM; ++i) {
-        pow_x[i] = std::pow(x[i], T(-3.0));
-        e += x[i] * x[i] + std::pow(x[i], T(-2.0));
+        pow_x[i] = pow_int<-3>(x[i]);
+        e += x[i] * x[i] + pow_int<-2>(x[i]);
     }
-    grad = 2.0 * (x - pow_x);
+    grad = T(2) * (x - pow_x);
     return e;
 }
 
@@ -289,8 +312,9 @@ void
 SymmDirichlet<DIM, T>::hessian(const VecD& x, MatD& H)
 {
     H.setZero();
-    for (int i = 0; i < DIM; ++i)
-        H(i, i) = 2.0 + 6.0 * std::pow(x[i], T(-4.0));
+    for (int i = 0; i < DIM; ++i) {
+        H(i, i) = T(2) + T(6) * pow_int<-4>(x[i]);
+    }
 }
 
 //================================================

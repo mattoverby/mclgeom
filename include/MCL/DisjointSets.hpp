@@ -6,6 +6,7 @@
 
 #include <atomic>
 #include <thread>
+#include <utility>
 #include <vector>
 
 namespace mcl {
@@ -17,10 +18,11 @@ class DisjointSets
     /// @brief Constructor
     DisjointSets(int n)
         : parent(n)
+        , rank(n)
     {
-        rank.resize(n, 0);
         for (int i = 0; i < n; ++i) {
             parent[i].store(i, std::memory_order_relaxed);
+            rank[i].store(0, std::memory_order_relaxed);
         }
     }
 
@@ -33,7 +35,7 @@ class DisjointSets
         }
         while (x != root) {
             int old_parent = parent[x].load(std::memory_order_acquire);
-            parent[x].store(root, std::memory_order_release);
+            parent[x].compare_exchange_weak(old_parent, root, std::memory_order_release, std::memory_order_acquire);
             x = old_parent;
         }
         return root;
@@ -44,21 +46,42 @@ class DisjointSets
     {
         int rootX = find(x);
         int rootY = find(y);
-        if (rootX != rootY) {
-            if (rank[rootX] > rank[rootY]) {
-                parent[rootY].store(rootX, std::memory_order_release);
-            } else if (rank[rootX] < rank[rootY]) {
-                parent[rootX].store(rootY, std::memory_order_release);
-            } else {
-                parent[rootY].store(rootX, std::memory_order_release);
-                rank[rootX] += 1;
+
+        while (rootX != rootY) {
+            int rankX = rank[rootX].load(std::memory_order_acquire);
+            int rankY = rank[rootY].load(std::memory_order_acquire);
+
+            if (rankX < rankY) {
+                std::swap(rootX, rootY);
+                std::swap(rankX, rankY);
             }
+
+            if (rankX == rankY) {
+                int expected = rankX;
+                if (!rank[rootX].compare_exchange_weak(expected, rankX + 1,
+                                                      std::memory_order_acq_rel,
+                                                      std::memory_order_acquire)) {
+                    rootX = find(x);
+                    rootY = find(y);
+                    continue;
+                }
+            }
+
+            int expected_root = rootY;
+            if (parent[rootY].compare_exchange_weak(expected_root, rootX,
+                                                   std::memory_order_acq_rel,
+                                                   std::memory_order_acquire)) {
+                break;
+            }
+
+            rootX = find(x);
+            rootY = find(y);
         }
     }
 
   protected:
     std::vector<std::atomic<int>> parent; ///< Parent of each element
-    std::vector<int> rank;                ///< Rank (or depth) of each tree
+    std::vector<std::atomic<int>> rank;   ///< Rank (or depth) of each tree
 };
 
 } // end namespace mcl

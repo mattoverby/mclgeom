@@ -9,8 +9,8 @@
 
 #include <Eigen/Core>
 
-#include <set>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace mcl {
 
@@ -132,8 +132,8 @@ ConstraintZone::ConstraintZone(int constraint_index, const int* sten, int stenci
 void
 ConstraintZone::merge(const ConstraintZone& zone)
 {
-    std::set<int> combined_constraints(constraints.begin(), constraints.end());
-    std::set<int> combined_stencil(stencil.begin(), stencil.end());
+    std::unordered_set<int> combined_constraints(constraints.begin(), constraints.end());
+    std::unordered_set<int> combined_stencil(stencil.begin(), stencil.end());
     combined_constraints.insert(zone.constraints.begin(), zone.constraints.end());
     combined_stencil.insert(zone.stencil.begin(), zone.stencil.end());
     constraints.assign(combined_constraints.begin(), combined_constraints.end());

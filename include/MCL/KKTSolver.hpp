@@ -18,10 +18,12 @@ namespace mcl {
 template<typename VectorType, typename SparseMatrixType>
 class KKTSolver
 {
-  public:
+  protected:
     using Scalar = typename VectorType::Scalar;
     using LDLT = Eigen::SimplicialLDLT<SparseMatrixType>;
+    VectorType q1, q2, q3, r, s;
 
+  public:
     struct Options
     {
         int max_iters = 30; ///< max solver iters
@@ -30,6 +32,21 @@ class KKTSolver
 
     /// @brief Optional: computes x = A^-1(b).
     std::function<void(const VectorType&, VectorType&)> solve_Axb;
+
+    /// @brief Resizes internal cache variables used during solve.
+    void resize(int A_rows, int C_rows, int C_cols)
+    {
+        q1.resize(A_rows);
+        q2.resize(A_rows);
+        q3.resize(C_rows);
+        r.resize(C_rows);
+        s.resize(C_rows);
+        q1.setZero();
+        q2.setZero();
+        q3.setZero();
+        r.setZero();
+        s.setZero();
+    }
 
     /// @brief Solve for x and y, return number of iterations.
     /// A is allowed to be empty if solve_Axb function is defined.
@@ -57,19 +74,21 @@ class KKTSolver
             return 1;
         }
 
+        resize(A.rows(), C.rows(), C.cols());
+        
         if (y.rows() != C.rows()) {
             y.resize(C.rows());
             y.setZero();
         }
 
         auto Ct = C.transpose();
-        VectorType q1 = b - Ct * y;
+        q1 = b - Ct * y;
         solve_Axb(q1, x);
 
-        VectorType r = C * x - d;
-        VectorType s = r.eval();
-        VectorType q2 = VectorType::Zero(x.size());
-        VectorType q3 = VectorType::Zero(d.size());
+        r = C * x - d;
+        s = r.eval();
+        q2.setZero();
+        q3.setZero();
         Scalar tol2 = options.tol * options.tol;
 
         int iter = 0;
