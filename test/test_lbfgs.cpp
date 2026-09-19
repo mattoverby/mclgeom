@@ -67,6 +67,7 @@ test_mesh_deform()
             RowVector3d edge = (x.row(e0) - x.row(e1));
             double l = edge.norm();
             double r = (V0.row(e0) - V0.row(e1)).norm(); // rest
+
             if (g.rows() == x.rows() && std::abs(l) > 1e-12) {
                 edge /= l;
                 edge *= (l - r) * k;
@@ -94,6 +95,7 @@ test_mesh_deform()
 
     // Init viewer
     igl::opengl::glfw::Viewer viewer;
+    viewer.core().is_animating = true;
     update_edge_points(V1);
     viewer.data().add_edges(E0, E1, EC);
     viewer.callback_pre_draw = [&](igl::opengl::glfw::Viewer&) -> bool {

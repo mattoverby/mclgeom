@@ -58,9 +58,8 @@ class DisjointSets
 
             if (rankX == rankY) {
                 int expected = rankX;
-                if (!rank[rootX].compare_exchange_weak(expected, rankX + 1,
-                                                      std::memory_order_acq_rel,
-                                                      std::memory_order_acquire)) {
+                if (!rank[rootX].compare_exchange_weak(
+                        expected, rankX + 1, std::memory_order_acq_rel, std::memory_order_acquire)) {
                     rootX = find(x);
                     rootY = find(y);
                     continue;
@@ -68,9 +67,8 @@ class DisjointSets
             }
 
             int expected_root = rootY;
-            if (parent[rootY].compare_exchange_weak(expected_root, rootX,
-                                                   std::memory_order_acq_rel,
-                                                   std::memory_order_acquire)) {
+            if (parent[rootY].compare_exchange_weak(
+                    expected_root, rootX, std::memory_order_acq_rel, std::memory_order_acquire)) {
                 break;
             }
 

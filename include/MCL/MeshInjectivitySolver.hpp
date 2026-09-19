@@ -2,15 +2,15 @@
 // Distributed under the MIT License.
 
 #ifndef MCL_GEOM_MESH_INJECTIVITY_SOLVER_HPP
-#define MCL_GEOM_MESH_INJECTIVITY_SOLVER_HPP 1
+#define MCL_GEOM_MESH_INJECTIVITY_SOLVER_HPP
 
-#include <MCL/ConstraintZone.hpp>
-#include <MCL/LevenbergMarquardt.hpp>
+#include "ConstraintZone.hpp"
+#include "LevenbergMarquardt.hpp"
 
 #include <Eigen/Core>
+#include <tbb/parallel_for.h>
 
 #include <iostream>
-#include <set>
 #include <unordered_set>
 
 namespace mcl {
@@ -27,6 +27,7 @@ class MeshInjectivitySolver
 {
   public:
     std::unordered_set<int> primitives_in_set; ///< primitive indices of volume constraints
+    std::unordered_set<int> pinned_vertices;   ///< Dirichlet boundary condition
     std::vector<VolumeConstraint<T, DIM>> volume_constraints;
     std::vector<ConstraintZone> zones; ///< constraints that share a vertex
     bool needs_merge = true;           ///< if constraint set has changed
@@ -35,6 +36,7 @@ class MeshInjectivitySolver
     void clear()
     {
         primitives_in_set.clear();
+        pinned_vertices.clear();
         volume_constraints.clear();
         zones.clear();
         needs_merge = true;
@@ -43,48 +45,25 @@ class MeshInjectivitySolver
     /// @brief Returns number of constraints
     size_t num_constraints() const { return volume_constraints.size(); }
 
-    /// @brief Loops over all primitives and adds any that are inverted to the set
-    void add_inversions(const T* x, const T* x_rest, const int* primitives, int num_primitives)
+    /// @brief Sets Dirichlet boundary conditions on the vertices
+    void add_pins(const int* pinned_vertex_inds, int num_pinned_vertices)
     {
-        T threshold = T(1e-4);
-        volume_constraints.reserve(num_primitives / 4);
-        primitives_in_set.reserve(num_primitives / 4);
-        zones.reserve(num_primitives / 4);
-        for (int i = 0; i < num_primitives; ++i) {
-
-            // If the primitive is already in the constraint set, no need to re-check
-            if (primitives_in_set.count(i) > 0) {
-                continue;
-            }
-
-            // Any new constraint is initially added to its own zone
-            auto stencil = get_primitive<DIM + 1>(i, primitives);
-            auto verts = get_verts<T, DIM, DIM + 1>(x, stencil.data());
-            int constraint_index = volume_constraints.size();
-            if constexpr (DIM == 2) {
-                if (signed_triangle_area(verts[0], verts[1], verts[2]) <= threshold) {
-                    needs_merge = true;
-                    volume_constraints.emplace_back(x_rest, stencil, -1);
-                    primitives_in_set.emplace(i);
-                    zones.emplace_back(constraint_index, stencil.data(), stencil.size());
-                }
-            } else if constexpr (DIM == 3) {
-                if (signed_tet_volume(verts[0], verts[1], verts[2], verts[3]) <= threshold) {
-                    needs_merge = true;
-                    volume_constraints.emplace_back(x_rest, stencil, -1);
-                    primitives_in_set.emplace(i);
-                    zones.emplace_back(constraint_index, stencil.data(), stencil.size());
-                }
-            }
+        for (int i = 0; i < num_pinned_vertices; ++i) {
+            pinned_vertices.emplace(pinned_vertex_inds[i]);
         }
     }
 
     /// @brief Moves vertices to best satisfy all constraints. Note the solver attempts to enforce the target
     /// volume for all elements, but will exit once all elements have a positive volume.
+    /// TODO: Optional x_rest and use some default positive offset for initially inverted tets.
     /// @return Number of iterations and updates vertices (x)
-    int solve(T* x, const T* x_rest, int num_vertices, const int* primitives, int num_primitives)
+    int solve(T* x,
+              const T* x_rest,
+              int num_vertices,
+              const int* primitives,
+              int num_primitives)
     {
-        // Initial gather of constraints
+        // Initial gather of constraints, one zone per constraint
         add_inversions(x, x_rest, primitives, num_primitives);
         if (volume_constraints.empty()) {
             return 0;
@@ -96,16 +75,21 @@ class MeshInjectivitySolver
             ConstraintZone::merge_zones(num_vertices, zones);
         }
 
+        std::cout << "init zones: " << zones.size() << ", constraints: " << volume_constraints.size() << std::endl;
+
         // Solver loop
         int iter = 0;
         int max_iterations = 20;
         while (iter < max_iterations) {
             ++iter;
 
-            // Solve constraints
-            for (auto& zone : zones) {
-                iterate_zone(zone, x);
-            }
+            // Solve constraints in parallel.
+            tbb::parallel_for(tbb::blocked_range<int>(0, int(zones.size())),
+                                [&](const tbb::blocked_range<int>& range) {
+                                    for (int i = range.begin(); i != range.end(); ++i) {
+                                        iterate_zone(zones[i], x);
+                                    }
+                                });
 
             // Check for new constraints
             add_inversions(x, x_rest, primitives, num_primitives);
@@ -125,17 +109,73 @@ class MeshInjectivitySolver
         return iter;
     }
 
+private:
+
+    /// @brief Returns true if a stencil has at least one non-pinned vertex
+    bool has_free_vertex(const Eigen::Vector<int, DIM + 1> &stencil) {
+        for (int i =0; i < DIM + 1; ++i) {
+            if (pinned_vertices.count(stencil[i]) == 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// @brief Loops over all primitives and adds any that are inverted to the set
+    void add_inversions(const T* x, const T* x_rest, const int* primitives, int num_primitives)
+    {        
+        T threshold = T(1e-8); // target_eval?
+        volume_constraints.reserve(num_primitives / 4);
+        primitives_in_set.reserve(num_primitives / 4);
+        zones.reserve(num_primitives / 4);
+        for (int i = 0; i < num_primitives; ++i) {
+
+            // If the primitive is already in the constraint set, no need to re-check
+            if (primitives_in_set.count(i) > 0) {
+                continue;
+            }
+
+            auto stencil = get_primitive<DIM + 1>(i, primitives);
+            if (!has_free_vertex(stencil)) {
+                continue;
+            }
+            
+            // Any new constraint is initially added to its own zone
+            auto verts = get_verts<T, DIM, DIM + 1>(x, stencil.data());
+            int constraint_index = volume_constraints.size();
+            if constexpr (DIM == 2) {
+                if (signed_triangle_area(verts[0], verts[1], verts[2]) <= threshold) {
+                    needs_merge = true;
+                    volume_constraints.emplace_back(x_rest == nullptr ? x : x_rest, stencil, -1);
+                    primitives_in_set.emplace(i);
+                    zones.emplace_back(constraint_index, stencil.data(), stencil.size());
+                }
+            } else if constexpr (DIM == 3) {                
+                if (signed_tet_volume(verts[0], verts[1], verts[2], verts[3]) <= threshold) {
+                    needs_merge = true;
+                    volume_constraints.emplace_back(x_rest == nullptr ? x : x_rest, stencil, -1);
+                    primitives_in_set.emplace(i);
+                    zones.emplace_back(constraint_index, stencil.data(), stencil.size());
+                }
+            }
+        }
+    }
+
     /// @brief Computes a (local) delta x to minimize constraint residuals
     void iterate_zone(ConstraintZone& zone, T* global_x)
     {
         using VectorType = Eigen::VectorX<T>;
         using MatrixType = Eigen::SparseMatrix<T>;
+
+        // TODO: Keep around LM parameter for each zone
         LevenbergMarquardt<VectorType, MatrixType> LM;
+
+        // Reuse J_triplets buffer to avoid repeated allocation
         std::vector<Eigen::Triplet<T>> J_triplets;
         J_triplets.reserve(zone.constraints.size() * (DIM + 1) * DIM);
 
         LM.objective = [&](const VectorType& local_x, VectorType& r, MatrixType& J, bool needJ) -> void {
-
+            
             J_triplets.clear();
             if (needJ) {
                 J.resize(zone.constraints.size(), local_x.rows());
@@ -149,23 +189,29 @@ class MeshInjectivitySolver
 
                 // Remap global stencil to local stencil
                 const auto& constraint = volume_constraints[constraint_index];
+                if (!has_free_vertex(constraint.stencil)) {
+                    continue;
+                }
+
                 std::array<int, DIM + 1> local_stencil;
                 for (int i = 0; i < DIM + 1; ++i) {
                     local_stencil[i] = zone.global_to_local[constraint.stencil[i]];
                 }
 
-                const auto verts = get_verts<T, DIM, DIM + 1>(local_x.data(), local_stencil.data());
+                auto verts = get_verts<T, DIM, DIM + 1>(local_x.data(), local_stencil.data());
                 T eval = constraint.eval(verts);
                 if (eval >= constraint.target_eval()) {
-                    continue;
+                    continue; // r = 0
                 }
 
                 if (needJ) {
-                    const auto gradients = constraint.gradients(verts);
+                    //throw std::runtime_error("todo: local needs to exclude fixed vertices, otherwise we get zeros on diagonal");
+                    auto gradients = constraint.gradients(verts);
                     for (int i = 0; i < DIM + 1; ++i) {
-                        for (int j = 0; j < DIM; ++j) {
-                            assert(local_stencil[i] * DIM + j < local_x.rows());
-                            J_triplets.emplace_back(r_index, local_stencil[i] * DIM + j, gradients[i][j]);
+                        if (pinned_vertices.count(constraint.stencil[i]) == 0) {
+                            for (int j = 0; j < DIM; ++j) {
+                                J_triplets.emplace_back(r_index, local_stencil[i] * DIM + j, gradients[i][j]);
+                            }
                         }
                     }
                 }
@@ -188,21 +234,26 @@ class MeshInjectivitySolver
         }
 
         // Solve
-        LM.iterate(local_x);
-        for (size_t i = 0; i < zone.stencil.size(); ++i) {
-            int global_index = zone.stencil[i];
-            for (int j = 0; j < DIM; ++j) {
-                global_x[global_index * DIM + j] = local_x[i * DIM + j];
+        T objective = LM.iterate(local_x);
+        if (objective >= 0) {
+            // Write back to global buffer
+            for (size_t i = 0; i < zone.stencil.size(); ++i) {
+                int global_index = zone.stencil[i];
+                for (int j = 0; j < DIM; ++j) {
+                    global_x[global_index * DIM + j] = local_x[i * DIM + j];
+                }
             }
         }
+
     }
 
     /// @brief Checks if all constraints are sufficiently solved.
-    bool check_termination(const T* global_x)
+    bool check_termination(const T* global_x, bool target_positive_volume = true)
     {
         for (auto& c : volume_constraints) {
+            T target_volume = target_positive_volume ? std::numeric_limits<T>::epsilon() : c.target_eval();
             const auto verts = get_verts<T, DIM, DIM + 1>(global_x, c.stencil.data());
-            if (c.eval(verts) < std::min(T(0), c.target_eval())) {
+            if (c.eval(verts) < target_volume) {
                 return false;
             }
         }

@@ -23,6 +23,7 @@ class VolumeConstraint
   public:
     Eigen::Vector<int, DIM + 1> stencil = Eigen::Vector<int, DIM + 1>::Zero();
     T scaling = 1;
+    T target_volume = 0;
 
     /// @brief Constructor
     VolumeConstraint() = default;
@@ -34,7 +35,7 @@ class VolumeConstraint
     ~VolumeConstraint() = default;
 
     /// @brief Returns (minimum) target volume
-    T target_eval() const { return 1e-3; }
+    T target_eval() const { return scaling * target_volume; }
 
     /// @brief Returns nonlinear eval at x
     T eval(const std::array<Eigen::Vector<T, DIM>, DIM + 1>& verts) const;
@@ -61,9 +62,6 @@ class ConstraintZone
     /// @brief Destructor
     ~ConstraintZone() = default;
 
-    /// @brief Merges another zone into this one
-    void merge(const ConstraintZone& zone);
-
     /// @brief Merges all zones that share indices
     static void merge_zones(int num_vertices, std::vector<ConstraintZone>& zones);
 };
@@ -77,8 +75,12 @@ VolumeConstraint<T, DIM>::VolumeConstraint(const T* x, const Eigen::Vector<int, 
     : stencil(stencil_)
     , scaling(scaling_)
 {
-    if (scaling <= T(0)) {
-        auto verts = get_verts<T, DIM, DIM + 1>(x, stencil.data());
+    // Set the scaling and target volume from the current state.
+    // This should actually come from the rest state (if we have it).
+    auto verts = get_verts<T, DIM, DIM + 1>(x, stencil.data());
+    T abs_eval = std::abs(eval(verts));
+    target_volume = T(0.1) * abs_eval;
+    if (scaling < 0) {
         if constexpr (DIM == 2) {
             scaling = T(1) / (T(0.5) * triangle_perimeter(verts[0], verts[1], verts[2]));
         } else if constexpr (DIM == 3) {
@@ -130,60 +132,60 @@ ConstraintZone::ConstraintZone(int constraint_index, const int* sten, int stenci
 }
 
 void
-ConstraintZone::merge(const ConstraintZone& zone)
-{
-    std::unordered_set<int> combined_constraints(constraints.begin(), constraints.end());
-    std::unordered_set<int> combined_stencil(stencil.begin(), stencil.end());
-    combined_constraints.insert(zone.constraints.begin(), zone.constraints.end());
-    combined_stencil.insert(zone.stencil.begin(), zone.stencil.end());
-    constraints.assign(combined_constraints.begin(), combined_constraints.end());
-    stencil.assign(combined_stencil.begin(), combined_stencil.end());
-    global_to_local.clear();
-    for (size_t i = 0; i < stencil.size(); ++i) {
-        global_to_local[stencil[i]] = i;
-    }
-}
-
-void
 ConstraintZone::merge_zones(int num_vertices, std::vector<ConstraintZone>& zones)
 {
+    if (zones.empty()) {
+        return;
+    }
 
     DisjointSets dj(num_vertices);
     for (const auto& zone : zones) {
-        size_t num_stencil = zone.stencil.size();
-        for (size_t i = 1; i < num_stencil; ++i) {
+        if (zone.stencil.empty()) {
+            continue;
+        }
+        for (size_t i = 1; i < zone.stencil.size(); ++i) {
             dj.make_union(zone.stencil[0], zone.stencil[i]);
         }
     }
 
-    std::vector<ConstraintZone> old_zones;
-    std::swap(zones, old_zones);
-    zones.reserve(old_zones.size());
-    std::vector<int> parent_to_zone_index;
-    parent_to_zone_index.reserve(old_zones.size());
-
-    // Loop zones and merge
-    for (auto& zone : old_zones) {
-
-        int parent = dj.find(zone.stencil[0]);
-        while (parent >= parent_to_zone_index.size()) {
-            parent_to_zone_index.emplace_back(-1);
+    std::unordered_map<int, std::vector<int>> root_to_zone_indices;
+    root_to_zone_indices.reserve(zones.size());
+    for (size_t i = 0; i < zones.size(); ++i) {
+        const auto& zone = zones[i];
+        if (zone.stencil.empty()) {
+            continue;
         }
-
-        // new zone
-        int zone_index = parent_to_zone_index[parent];
-        if (zone_index < 0) {
-            int new_zone_index = zones.size();
-            parent_to_zone_index[parent] = new_zone_index;
-            zones.emplace_back(zone);
-            zones.back().index = new_zone_index;
-        }
-        // Existing zone: merge
-        else {
-            // Should I cache zones and merge all at once?
-            zones[zone_index].merge(zone);
-        }
+        int root = dj.find(zone.stencil[0]);
+        root_to_zone_indices[root].push_back(i);
     }
+
+    std::vector<ConstraintZone> merged_zones;
+    merged_zones.reserve(root_to_zone_indices.size());
+    for (auto& [root, zone_indices] : root_to_zone_indices) {
+        (void)root;
+
+        std::unordered_set<int> combined_constraints;
+        std::unordered_set<int> combined_stencil;
+
+        for (int zone_index : zone_indices) {
+            const auto& zone = zones[zone_index];
+            combined_constraints.insert(zone.constraints.begin(), zone.constraints.end());
+            combined_stencil.insert(zone.stencil.begin(), zone.stencil.end());
+        }
+
+        ConstraintZone merged_zone;
+        merged_zone.index = int(merged_zones.size());
+        merged_zone.constraints.assign(combined_constraints.begin(), combined_constraints.end());
+        merged_zone.stencil.assign(combined_stencil.begin(), combined_stencil.end());
+        merged_zone.global_to_local.clear();
+        for (size_t i = 0; i < merged_zone.stencil.size(); ++i) {
+            merged_zone.global_to_local[merged_zone.stencil[i]] = int(i);
+        }
+
+        merged_zones.emplace_back(std::move(merged_zone));
+    }
+
+    zones.swap(merged_zones);
 }
 
 } // end ns mcl

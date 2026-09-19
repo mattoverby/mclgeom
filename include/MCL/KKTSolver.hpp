@@ -75,7 +75,7 @@ class KKTSolver
         }
 
         resize(A.rows(), C.rows(), C.cols());
-        
+
         if (y.rows() != C.rows()) {
             y.resize(C.rows());
             y.setZero();

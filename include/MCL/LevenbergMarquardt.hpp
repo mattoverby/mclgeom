@@ -8,8 +8,11 @@
 #include <Eigen/SVD>
 #include <Eigen/Sparse>
 #include <Eigen/SparseCholesky>
+#include <Eigen/IterativeLinearSolvers>
 
 #include <functional>
+
+#include <iostream>
 
 namespace mcl {
 
@@ -53,10 +56,20 @@ class LevenbergMarquardt
 
         VectorType lambda = VectorType::Zero(J.rows());
         auto JJt = (J * J.transpose()).eval();
+        JJt.makeCompressed();
         T eval_init = T(0.5) * residual.dot(residual);
+
+        // tmp verify step
+                    T min_JJti = JJt.diagonal().minCoeff();
+                    if (min_JJti < 1e-19) {
+                        std::cout << min_JJti << std::endl;
+                        throw std::runtime_error("ope");
+                    }
+
 
         // Special cases: small J use dense solvers
         // Solve y = JJ^T(f(x))
+        std::cout << "solve..." << std::flush;
         if (J.rows() > 3) {
             T max_JJti = JJt.diagonal().maxCoeff();
             for (int i = 0; i < JJt.rows(); ++i) {
@@ -66,6 +79,9 @@ class LevenbergMarquardt
             LDLT ldlt(JJt);
             if (ldlt.info() == Eigen::Success) {
                 lambda = ldlt.solve(residual);
+            }
+            else {
+                return -1;
             }
         } else if (J.rows() == 1) {
             T JJt0 = JJt.coeff(0, 0);
@@ -79,6 +95,7 @@ class LevenbergMarquardt
             Eigen::JacobiSVD<Eigen::Matrix<T, 3, 3>> svd(JJt_dense, Eigen::ComputeFullU | Eigen::ComputeFullV);
             lambda = svd.solve(residual);
         }
+        std::cout << "done" << std::endl;
 
         // Search direction
         VectorType p = J.transpose() * (-lambda);

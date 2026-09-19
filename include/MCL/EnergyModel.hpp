@@ -76,7 +76,7 @@ class SymmDirichlet
     typedef Eigen::Matrix<T, DIM, DIM> MatD;
 
     /// @brief Helper function for more stable pow calls.
-    template <int S>
+    template<int S>
     static T pow_int(T scalar);
 
   public:
