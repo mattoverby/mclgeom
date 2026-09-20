@@ -5,7 +5,6 @@
 #define MCL_GEOM_LMSOLVER_HPP
 
 #include <Eigen/Dense>
-#include <Eigen/IterativeLinearSolvers>
 #include <Eigen/SVD>
 #include <Eigen/Sparse>
 #include <Eigen/SparseCholesky>
