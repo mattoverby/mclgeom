@@ -11,6 +11,7 @@
 
 #include <unordered_map>
 #include <unordered_set>
+#include <memory>
 
 namespace mcl {
 
@@ -44,11 +45,10 @@ class VolumeConstraint
     std::array<Eigen::Vector<T, DIM>, DIM + 1> gradients(const std::array<Eigen::Vector<T, DIM>, DIM + 1>& verts) const;
 };
 
-/// @brief A collection of constraints that share a vertex
+/// @brief A collection of constraints that share a vertex.
 class ConstraintZone
 {
   public:
-    int index = -1;               ///< unique index of this zone
     std::vector<int> constraints; ///< global constraint index
     std::vector<int> stencil;     ///< local -> global vertex indices
 
@@ -63,6 +63,18 @@ class ConstraintZone
 
     /// @brief Merges all zones that share indices
     static void merge_zones(int num_vertices, std::vector<ConstraintZone>& zones);
+
+    /// Optional shared data can be defined, but be aware it's a shared_ptr and so
+    /// zone_a = zone_b will cause both zones to share ownership of the data.
+    /// During merge_zones, the data may be handed off to another zone.
+    /// Slightly clunky interface but convenient when you want to store more than
+    /// constraint indices and stencils in a zone.
+    class SharedData {
+        public:
+            /// @brief Merges another SharedData into this one (called on merge_zones).
+            virtual void merge(const SharedData *data) = 0;
+    };
+    std::shared_ptr<SharedData> shared_data; ///< optional shared data that can be merged.
 };
 
 //
@@ -162,17 +174,28 @@ ConstraintZone::merge_zones(int num_vertices, std::vector<ConstraintZone>& zones
 
         std::unordered_set<int> combined_constraints;
         std::unordered_set<int> combined_stencil;
+        std::shared_ptr<SharedData> shared_data;
 
         for (int zone_index : zone_indices) {
             const auto& zone = zones[zone_index];
             combined_constraints.insert(zone.constraints.begin(), zone.constraints.end());
             combined_stencil.insert(zone.stencil.begin(), zone.stencil.end());
+
+            if (zone.shared_data) {
+                if (!shared_data) {
+                    shared_data = zone.shared_data;
+                } else {
+                    shared_data->merge(zone.shared_data.get());
+                }
+            }
         }
 
         ConstraintZone merged_zone;
-        merged_zone.index = int(merged_zones.size());
         merged_zone.constraints.assign(combined_constraints.begin(), combined_constraints.end());
         merged_zone.stencil.assign(combined_stencil.begin(), combined_stencil.end());
+        if (shared_data) {
+            merged_zone.shared_data = shared_data;
+        }
 
         merged_zones.emplace_back(std::move(merged_zone));
     }

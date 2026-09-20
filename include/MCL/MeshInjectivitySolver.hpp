@@ -203,6 +203,8 @@ MeshInjectivitySolver<T, DIM>::iterate_zone(ConstraintZone& zone, T* global_x)
     // TODO: Keep around LM parameter for each zone
     LevenbergMarquardt<VectorType, MatrixType> LM;
 
+    throw std::runtime_error("STORE LM PARAM IN shared_data of CONSTRAINT ZONZE");
+
     // Reuse J_triplets/r_values buffer to avoid repeated allocation
     std::vector<Eigen::Triplet<T>> J_triplets;
     J_triplets.reserve(zone.constraints.size() * (DIM + 1) * DIM);
