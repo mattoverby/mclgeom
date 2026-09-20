@@ -1,6 +1,7 @@
 // Copyright Matt Overby 2021.
 // Distributed under the MIT License.
 #include <MCL/AssertHandler.hpp>
+#include <MCL/Centerize.hpp>
 #include <MCL/FacesFromTets.hpp>
 #include <MCL/MeshInjectivitySolver.hpp>
 #include <MCL/MicroTimer.hpp>
@@ -8,10 +9,9 @@
 #include <MCL/ReadEleNode.hpp>
 #include <MCL/ReadVTK.hpp>
 #include <MCL/SignedMeasure.hpp>
-#include <MCL/Centerize.hpp>
 
-#include <iostream>
 #include <filesystem>
+#include <iostream>
 
 typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RowMatrixXd;
 typedef Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RowMatrixXi;
@@ -26,12 +26,11 @@ regression_test();
 
 /// @brief Helper for counting inverted tetrahedra
 int
-count_flipped_tets(const RowMatrixXd& V, const RowMatrixXi& T,
-    const std::unordered_set<int> &pinned_vertices = {})
+count_flipped_tets(const RowMatrixXd& V, const RowMatrixXi& T, const std::unordered_set<int>& pinned_vertices = {})
 {
     auto has_free_vertex = [&](int i) {
         for (int j = 0; j < T.cols(); ++j) {
-            if (pinned_vertices.count(T(i,j) == 0)) {
+            if (pinned_vertices.count(T(i, j) == 0)) {
                 return true;
             }
         }
@@ -43,7 +42,7 @@ count_flipped_tets(const RowMatrixXd& V, const RowMatrixXi& T,
         if (has_free_vertex(i)) {
             auto stencil = mcl::get_primitive<4>(i, T.data());
             auto v = mcl::get_verts<double, 3, 4>(V.data(), stencil.data());
-            if (mcl::signed_tet_volume(v[0], v[1], v[2], v[3]) < 0.0) {
+            if (mcl::signed_tet_volume(v[0], v[1], v[2], v[3]) <= 0) {
                 ++inverted_count;
             }
         }
@@ -107,9 +106,9 @@ main(int argc, char* argv[])
 void
 test_constraint_zone()
 {
-    std::vector<int> stencil_a = {0, 1, 2, 3};
-    std::vector<int> stencil_b = {3, 4, 5, 6};
-    std::vector<int> stencil_c = {7, 8, 9, 10};
+    std::vector<int> stencil_a = { 0, 1, 2, 3 };
+    std::vector<int> stencil_b = { 3, 4, 5, 6 };
+    std::vector<int> stencil_c = { 7, 8, 9, 10 };
 
     std::vector<mcl::ConstraintZone> zones;
     zones.emplace_back(0, stencil_a.data(), static_cast<int>(stencil_a.size()));
@@ -117,8 +116,6 @@ test_constraint_zone()
     zones.emplace_back(2, stencil_c.data(), static_cast<int>(stencil_c.size()));
 
     mclAssert(zones[0].constraints.size() == 1);
-    mclAssert(zones[0].global_to_local.at(0) == 0);
-    mclAssert(zones[0].global_to_local.at(3) == 3);
 
     mcl::ConstraintZone::merge_zones(11, zones);
 
@@ -137,7 +134,6 @@ test_constraint_zone()
             mclAssert(zone_vertices.count(0) > 0);
             mclAssert(zone_vertices.count(3) > 0);
             mclAssert(zone_vertices.count(6) > 0);
-            mclAssert(zone.global_to_local.at(3) == 3);
         }
 
         if (zone_constraints.count(2) > 0) {
@@ -241,18 +237,19 @@ regression_test()
 
         // Laplace
         if (true) {
-            std::cout << "\trunning laplace initializer " << std::endl;
+            std::cout << "\t\trunning laplace initializer " << std::endl;
 
             int flipped_tets_init = count_flipped_tets(laplace, T, surface_vertices);
             std::cout << "\tinit flipped tets: " << flipped_tets_init << std::endl;
             mcl::MeshInjectivitySolver<double, 3> solver;
             solver.add_pins(pin_inds.data(), pin_inds.size());
             mcl::MicroTimer t;
-            int iters =
-                solver.solve(laplace.data(), V0.data(), V0.rows(), T.data(), T.rows());
+            int iters = solver.solve(laplace.data(), V0.data(), V0.rows(), T.data(), T.rows());
             double ms = t.elapsed_ms();
             int flipped_tets_solved = count_flipped_tets(laplace, T, surface_vertices);
-            std::cout << "\tfinal flipped tets: " << flipped_tets_solved << " in " << ms << "ms" << std::endl;
+            std::cout << "\t\tfinal flipped tets: " << flipped_tets_solved << " in " << iters << " iters, " << ms
+                      << "ms" << std::endl;
+            mclAssert(flipped_tets_solved == 0);
         }
 
         // onepoint
@@ -264,28 +261,27 @@ regression_test()
             mcl::MeshInjectivitySolver<double, 3> solver;
             solver.add_pins(pin_inds.data(), pin_inds.size());
             mcl::MicroTimer t;
-            int iters =
-                solver.solve(onepoint.data(), V0.data(), V0.rows(), T.data(), T.rows());
+            int iters = solver.solve(onepoint.data(), V0.data(), V0.rows(), T.data(), T.rows());
             double ms = t.elapsed_ms();
             int flipped_tets_solved = count_flipped_tets(onepoint, T, surface_vertices);
-            std::cout << "\tfinal flipped tets: " << flipped_tets_solved << " in " << ms << "ms" << std::endl;
+            std::cout << "\t\tfinal flipped tets: " << flipped_tets_solved << " in " << ms << "ms" << std::endl;
         }
-
 
         // random
         if (true) {
             std::cout << "\trunning random initializer " << std::endl;
 
             int flipped_tets_init = count_flipped_tets(random, T, surface_vertices);
-            std::cout << "\tinit flipped tets: " << flipped_tets_init << std::endl;
+            std::cout << "\t\tinit flipped tets: " << flipped_tets_init << std::endl;
             mcl::MeshInjectivitySolver<double, 3> solver;
             solver.add_pins(pin_inds.data(), pin_inds.size());
             mcl::MicroTimer t;
-            int iters =
-                solver.solve(random.data(), V0.data(), V0.rows(), T.data(), T.rows());
+            int iters = solver.solve(random.data(), V0.data(), V0.rows(), T.data(), T.rows());
             double ms = t.elapsed_ms();
             int flipped_tets_solved = count_flipped_tets(random, T, surface_vertices);
-            std::cout << "\tfinal flipped tets: " << flipped_tets_solved << " in " << ms << "ms" << std::endl;
+            std::cout << "\t\tfinal flipped tets: " << flipped_tets_solved << " in " << iters << " iters, " << ms
+                      << "ms" << std::endl;
+            // mclAssert(flipped_tets_solved == 0);
         }
     }
 }

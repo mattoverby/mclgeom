@@ -48,10 +48,9 @@ class VolumeConstraint
 class ConstraintZone
 {
   public:
-    int index = -1;                               ///< unique index of this zone
-    std::vector<int> constraints;                 ///< global constraint index
-    std::vector<int> stencil;                     ///< local -> global vertex indices
-    std::unordered_map<int, int> global_to_local; ///< global -> local vertex indices
+    int index = -1;               ///< unique index of this zone
+    std::vector<int> constraints; ///< global constraint index
+    std::vector<int> stencil;     ///< local -> global vertex indices
 
     /// @brief Constructor
     ConstraintZone() = default;
@@ -80,7 +79,7 @@ VolumeConstraint<T, DIM>::VolumeConstraint(const T* x, const Eigen::Vector<int, 
     auto verts = get_verts<T, DIM, DIM + 1>(x, stencil.data());
     T abs_eval = std::abs(eval(verts));
     target_volume = T(0.1) * abs_eval;
-    if (scaling < 0) {
+    if (scaling <= 0) {
         if constexpr (DIM == 2) {
             scaling = T(1) / (T(0.5) * triangle_perimeter(verts[0], verts[1], verts[2]));
         } else if constexpr (DIM == 3) {
@@ -126,9 +125,6 @@ ConstraintZone::ConstraintZone(int constraint_index, const int* sten, int stenci
 {
     stencil.insert(stencil.end(), sten, sten + stencil_size);
     constraints.emplace_back(constraint_index);
-    for (size_t i = 0; i < stencil.size(); ++i) {
-        global_to_local[stencil[i]] = i;
-    }
 }
 
 void
@@ -177,10 +173,6 @@ ConstraintZone::merge_zones(int num_vertices, std::vector<ConstraintZone>& zones
         merged_zone.index = int(merged_zones.size());
         merged_zone.constraints.assign(combined_constraints.begin(), combined_constraints.end());
         merged_zone.stencil.assign(combined_stencil.begin(), combined_stencil.end());
-        merged_zone.global_to_local.clear();
-        for (size_t i = 0; i < merged_zone.stencil.size(); ++i) {
-            merged_zone.global_to_local[merged_zone.stencil[i]] = int(i);
-        }
 
         merged_zones.emplace_back(std::move(merged_zone));
     }
