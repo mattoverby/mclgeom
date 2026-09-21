@@ -60,6 +60,10 @@ class LevenbergMarquardt
     /// Returns the objective (1/2)||f(x)||^2 and updates x, or -1 if there was an error.
     T iterate(VectorType& x)
     {
+        // Derivative function computes Jacobian and active set.
+        // Residal function compute residual FOR ONLY the active set.
+        throw std::runtime_error("TODO: derivative and residual functions");
+
         // Compute resdual and Jacobian.
         J.setZero();
         residual.setZero();

@@ -260,7 +260,7 @@ regression_test()
             std::cout << "\trunning onepoint initializer " << std::endl;
 
             int flipped_tets_init = count_flipped_tets(onepoint, T, surface_vertices);
-            std::cout << "\tinit flipped tets: " << flipped_tets_init << std::endl;
+            std::cout << "\t\tinit flipped tets: " << flipped_tets_init << std::endl;
             mcl::MeshInjectivitySolver<double, 3> solver;
             solver.add_pins(pin_inds.data(), pin_inds.size());
             mcl::MicroTimer t;

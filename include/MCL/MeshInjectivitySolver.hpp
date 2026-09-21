@@ -70,6 +70,18 @@ class MeshInjectivitySolver
 // Implementation
 //
 
+/// @brief We'll bind the LM damping parameter to zones. When zones are merged,
+/// take the average as the new parameter.
+class LMZoneData : public ConstraintZone::SharedData
+{
+public:
+    double lm_param = 1e-4;
+    void merge(const SharedData *data) {
+        const LMZoneData *other_data = dynamic_cast<const LMZoneData*>(data);
+        lm_param = (other_data->lm_param + lm_param) * 0.5;
+    }
+};
+
 template<typename T, int DIM>
 void
 MeshInjectivitySolver<T, DIM>::clear()
@@ -181,6 +193,7 @@ MeshInjectivitySolver<T, DIM>::add_inversions(const T* x, const T* x_rest, const
                 volume_constraints.emplace_back(x_rest == nullptr ? x : x_rest, stencil, -1);
                 primitives_in_set.emplace(i);
                 zones.emplace_back(constraint_index, stencil.data(), stencil.size());
+                zones.back().shared_data = std::make_shared<LMZoneData>();
             }
         } else if constexpr (DIM == 3) {
             if (signed_tet_volume(verts[0], verts[1], verts[2], verts[3]) <= threshold) {
@@ -188,6 +201,7 @@ MeshInjectivitySolver<T, DIM>::add_inversions(const T* x, const T* x_rest, const
                 volume_constraints.emplace_back(x_rest == nullptr ? x : x_rest, stencil, -1);
                 primitives_in_set.emplace(i);
                 zones.emplace_back(constraint_index, stencil.data(), stencil.size());
+                zones.back().shared_data = std::make_shared<LMZoneData>();
             }
         }
     }
@@ -200,10 +214,10 @@ MeshInjectivitySolver<T, DIM>::iterate_zone(ConstraintZone& zone, T* global_x)
     using VectorType = Eigen::VectorX<T>;
     using MatrixType = Eigen::SparseMatrix<T>;
 
-    // TODO: Keep around LM parameter for each zone
+    // Set the LM damping parameter which is stored with the zone.
     LevenbergMarquardt<VectorType, MatrixType> LM;
-
-    throw std::runtime_error("STORE LM PARAM IN shared_data of CONSTRAINT ZONZE");
+    LMZoneData *zone_data = dynamic_cast<LMZoneData*>(zone.shared_data.get());
+    LM.options.lm_param = zone_data->lm_param;
 
     // Reuse J_triplets/r_values buffer to avoid repeated allocation
     std::vector<Eigen::Triplet<T>> J_triplets;
@@ -293,7 +307,9 @@ MeshInjectivitySolver<T, DIM>::iterate_zone(ConstraintZone& zone, T* global_x)
     T objective = LM.iterate(local_x);
 
     // Map back to global buffer if there wasn't an error.
+    // Store updated LM damping param for future iterations.
     if (objective >= 0) {
+        zone_data->lm_param = LM.options.lm_param;
         for (size_t i = 0; i < LM_local_to_global.size(); ++i) {
             int global_index = LM_local_to_global[i];
             for (int j = 0; j < DIM; ++j) {
