@@ -24,13 +24,22 @@ readMSH4(const std::string& filePath, Eigen::MatrixXd& TV, Eigen::MatrixXi& TT)
     int tmp_i;
 
     char buf[BUFSIZ];
-    while ((!feof(in)) && fgets(buf, BUFSIZ, in)) {
+    while (fgets(buf, BUFSIZ, in)) {
         if (strncmp("$Nodes", buf, 6) == 0) {
-            tmp = fgets(buf, BUFSIZ, in);
-            int vAmt;
-            sscanf(buf, "1 %d", &vAmt);
+            if (!fgets(buf, BUFSIZ, in)) {
+                fclose(in);
+                return false;
+            }
+            int vAmt = 0;
+            if (sscanf(buf, "1 %d", &vAmt) != 1 || vAmt <= 0) {
+                fclose(in);
+                return false;
+            }
             TV.resize(vAmt, 3);
-            tmp = fgets(buf, BUFSIZ, in);
+            if (!fgets(buf, BUFSIZ, in)) {
+                fclose(in);
+                return false;
+            }
             break;
         }
     }
@@ -41,15 +50,28 @@ readMSH4(const std::string& filePath, Eigen::MatrixXd& TV, Eigen::MatrixXi& TT)
     int bypass;
     for (int vI = 0; vI < TV.rows(); vI++) {
         tmp_i = fscanf(in, "%d %le %le %le\n", &bypass, &TV(vI, 0), &TV(vI, 1), &TV(vI, 2));
+        if (tmp_i != 4) {
+            fclose(in);
+            return false;
+        }
     }
 
-    while ((!feof(in)) && fgets(buf, BUFSIZ, in)) {
+    while (fgets(buf, BUFSIZ, in)) {
         if (strncmp("$Elements", buf, 9) == 0) {
-            tmp = fgets(buf, BUFSIZ, in);
-            int elemAmt;
-            sscanf(buf, "1 %d", &elemAmt);
+            if (!fgets(buf, BUFSIZ, in)) {
+                fclose(in);
+                return false;
+            }
+            int elemAmt = 0;
+            if (sscanf(buf, "1 %d", &elemAmt) != 1 || elemAmt <= 0) {
+                fclose(in);
+                return false;
+            }
             TT.resize(elemAmt, 4);
-            tmp = fgets(buf, BUFSIZ, in);
+            if (!fgets(buf, BUFSIZ, in)) {
+                fclose(in);
+                return false;
+            }
             break;
         }
     }
@@ -60,6 +82,10 @@ readMSH4(const std::string& filePath, Eigen::MatrixXd& TV, Eigen::MatrixXi& TT)
     int minTT = 9999;
     for (int elemI = 0; elemI < TT.rows(); elemI++) {
         tmp_i = fscanf(in, "%d %d %d %d %d\n", &bypass, &TT(elemI, 0), &TT(elemI, 1), &TT(elemI, 2), &TT(elemI, 3));
+        if (tmp_i != 5) {
+            fclose(in);
+            return false;
+        }
         minTT = std::min(minTT, TT.row(elemI).minCoeff());
     }
 

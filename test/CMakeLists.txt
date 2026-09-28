@@ -16,8 +16,6 @@ endif()
 # unit testing
 if (MCLGEOM_UNIT_TESTS)
 
-    enable_testing()
-
     find_package(TBB REQUIRED)
 
     add_executable(test_constraintpolish ${CMAKE_CURRENT_SOURCE_DIR}/test_constraintpolish.cpp)

@@ -6,9 +6,11 @@
 
 #include <Eigen/Dense>
 #include <Eigen/SparseCholesky>
+
+#include <tbb/parallel_for.h>
+
 #include <functional>
 #include <numeric>
-#include <tbb/parallel_for.h>
 
 namespace mcl {
 

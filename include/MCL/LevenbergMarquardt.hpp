@@ -8,11 +8,12 @@
 #include <Eigen/SVD>
 #include <Eigen/Sparse>
 #include <Eigen/SparseCholesky>
+
 #include <functional>
 
 namespace mcl {
 
-/// @brief Levenberg-Marquard solver for underdetermined systems.
+/// @brief Levenberg-Marquard(-ish) solver for underdetermined systems.
 /// Follows derivations from https://doi.org/10.1111/cgf.14361, Eq. 12.
 /// Solves (1/2)||f(x)||^2, with f : R^n -> R^m
 /// Each iteration computes step: p = -J^T(JJ^T + U)*f(x)
@@ -20,51 +21,70 @@ namespace mcl {
 template<typename VectorType, typename SparseMatrixType>
 class LevenbergMarquardt
 {
-  public:
+  private:
     using T = typename VectorType::Scalar;
     using LDLT = Eigen::SimplicialLDLT<SparseMatrixType>;
+    VectorType lambda;    ///< Lagrange mults
+    SparseMatrixType J;   //< Jacobian
+    VectorType residual;  ///< residual vector (i.e. per constraint errors)
+    SparseMatrixType JJt; ///< matrix
+    VectorType p;         ///< step direction
+    VectorType x0;        ///< x at start of linesearch
 
+  public:
     struct Options
     {
-        int max_iters = 30;       ///< max solver iters
-        T tol = T(1e-6);          ///< convergence tol
-        T lm_param = T(1e-4);     ///< diagonal regularizer, adjusted in iterate(x)
-        T min_lm_param = T(1e-8); ///< if nonnegative, enables adaptive LM
-        int max_ls_iters = 1000;  ///< linesearch iterations
+        T lm_param = T(1e-3);     ///< diagonal regularizer, adjusted in iterate(x)
+        T min_lm_param = T(1e-4); ///< if nonnegative, enables adaptive LM
+        int max_ls_iters = 1000;  ///< linesearch iterations; if meets, exits with error
     } options;
 
-    /// @brief Required: computes residual and Jacobian J = grad f(x)
+    /// @brief Required: computes residual and Jacobian J = grad f(x).
+    /// This function must resize the residual vector and Jacobian matrix.
     /// The Jacobian isn't needed if the last argument is false (i.e., linesearch).
     /// Signature is [x, residual, Jacobian, needsJacobian]
     std::function<void(const VectorType&, VectorType&, SparseMatrixType&, bool)> objective;
 
+    /// @brief Clears local data, does not reset options.
+    void clear()
+    {
+        lambda = VectorType();
+        J = SparseMatrixType();
+        residual = VectorType();
+        JJt = SparseMatrixType();
+        p = VectorType();
+        x0 = VectorType();
+    }
+
     /// @brief Performs an LM iteration of f(x), f : R^n -> R^m
     /// Returns the objective (1/2)||f(x)||^2 and updates x, or -1 if there was an error.
+    /// Additionally, options.lm_param is updated on a successful iteration.
     T iterate(VectorType& x)
     {
-        // Compute Jacobian
-        SparseMatrixType J;
-        VectorType residual;
+        // Compute resdual and Jacobian.
+        J.setZero();
+        residual.setZero();
         objective(x, residual, J, true);
         if (J.nonZeros() == 0) {
             return T(0);
         }
 
-        VectorType lambda = VectorType::Zero(J.rows());
-        auto JJt = (J * J.transpose()).eval();
+        J.makeCompressed();
+        lambda = VectorType::Zero(J.rows());
+        JJt = (J * J.transpose()).eval();
+        JJt.makeCompressed();
         T eval_init = T(0.5) * residual.dot(residual);
 
-        // Special cases: small J use dense solvers
         // Solve y = JJ^T(f(x))
+        // Special cases: small J use dense solvers
         if (J.rows() > 3) {
             T max_JJti = JJt.diagonal().maxCoeff();
-            for (int i = 0; i < JJt.rows(); ++i) {
-                JJt.coeffRef(i, i) += max_JJti * options.lm_param;
-            }
-            // JJt.diagonal().array() += max_JJti * options.lm_param;
+            JJt.diagonal().array() += max_JJti * options.lm_param;
             LDLT ldlt(JJt);
             if (ldlt.info() == Eigen::Success) {
                 lambda = ldlt.solve(residual);
+            } else {
+                return -1;
             }
         } else if (J.rows() == 1) {
             T JJt0 = JJt.coeff(0, 0);
@@ -80,7 +100,7 @@ class LevenbergMarquardt
         }
 
         // Search direction
-        VectorType p = J.transpose() * (-lambda);
+        p = J.transpose() * (-lambda);
         T p_norm = p.template lpNorm<Eigen::Infinity>();
         if (!std::isfinite(p_norm)) {
             return T(-1);
@@ -90,10 +110,13 @@ class LevenbergMarquardt
         T alpha = T(1); // step size
 
         // Initial step
-        VectorType x0 = x;
+        x0 = x;
         x = x0 + alpha * p;
         objective(x, residual, dummy, false);
         T eval_new = T(0.5) * residual.dot(residual);
+        if (!std::isfinite(eval_new)) {
+            return T(-1);
+        }
 
         // Linesearch
         int ls_iter = 0;
@@ -102,6 +125,9 @@ class LevenbergMarquardt
             x = x0 + alpha * p;
             objective(x, residual, dummy, false);
             eval_new = T(0.5) * residual.dot(residual);
+            if (!std::isfinite(eval_new)) {
+                return T(-1);
+            }
             ls_iter++;
             if (ls_iter > options.max_ls_iters) {
                 eval_new = T(-1); // did not converge
