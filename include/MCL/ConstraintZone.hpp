@@ -9,9 +9,9 @@
 
 #include <Eigen/Core>
 
+#include <memory>
 #include <unordered_map>
 #include <unordered_set>
-#include <memory>
 
 namespace mcl {
 
@@ -69,10 +69,11 @@ class ConstraintZone
     /// During merge_zones, the data may be handed off to another zone.
     /// Slightly clunky interface but convenient when you want to store more than
     /// constraint indices and stencils in a zone.
-    class SharedData {
-        public:
-            /// @brief Merges another SharedData into this one (called on merge_zones).
-            virtual void merge(const SharedData *data) = 0;
+    class SharedData
+    {
+      public:
+        /// @brief Merges another SharedData into this one (called on merge_zones).
+        virtual void merge(const SharedData* data) = 0;
     };
     std::shared_ptr<SharedData> shared_data; ///< optional shared data that can be merged.
 };

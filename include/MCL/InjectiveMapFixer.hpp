@@ -1,8 +1,8 @@
 // Copyright Matt Overby 2026.
 // Distributed under the MIT License.
 
-#ifndef MCL_GEOM_MESH_INJECTIVITY_SOLVER_HPP
-#define MCL_GEOM_MESH_INJECTIVITY_SOLVER_HPP
+#ifndef MCL_GEOM_INJECTIVE_MAP_FIXER_HPP
+#define MCL_GEOM_INJECTIVE_MAP_FIXER_HPP
 
 #include "ConstraintZone.hpp"
 #include "LevenbergMarquardt.hpp"
@@ -18,12 +18,12 @@ namespace mcl {
 /// @brief A robust solver for global injectivity constraints.
 /// Used to compute foldover-free maps for mesh parameterization and deformation.
 /// See Overby et al. 2021 (https://doi.org/10.1111/cgf.14361) for details.
-/// This is a reimplementation from the original code release and I haven't fully vetted it yet.
+/// This is a reimplementation from the original code release.
 /// TODO: Collision constraints.
 /// @tparam T scalar type
 /// @tparam DIM dimension of vertices, with primitive dimension DIM + 1
 template<typename T, int DIM>
-class MeshInjectivitySolver
+class InjectiveMapFixer
 {
   public:
     struct Options
@@ -62,8 +62,9 @@ class MeshInjectivitySolver
     /// @brief Computes a (local) delta x to minimize constraint residuals
     void iterate_zone(ConstraintZone& zone, T* global_x);
 
-    /// @brief Checks if all constraints are sufficiently solved.
-    bool check_termination(const T* global_x);
+    /// @brief Returns per-constraint sevaluations, optionally exlude target eval.
+    /// If exclude_target, evals are ci(x) instead of ci(x)-target_ci
+    void constraint_evals(const T* global_x, Eigen::VectorX<T>& evals, bool exclude_target, bool increase_target);
 };
 
 //
@@ -74,17 +75,18 @@ class MeshInjectivitySolver
 /// take the average as the new parameter.
 class LMZoneData : public ConstraintZone::SharedData
 {
-public:
+  public:
     double lm_param = 1e-4;
-    void merge(const SharedData *data) {
-        const LMZoneData *other_data = dynamic_cast<const LMZoneData*>(data);
+    void merge(const SharedData* data)
+    {
+        const LMZoneData* other_data = dynamic_cast<const LMZoneData*>(data);
         lm_param = (other_data->lm_param + lm_param) * 0.5;
     }
 };
 
 template<typename T, int DIM>
 void
-MeshInjectivitySolver<T, DIM>::clear()
+InjectiveMapFixer<T, DIM>::clear()
 {
     primitives_in_set.clear();
     pinned_vertices.clear();
@@ -95,7 +97,7 @@ MeshInjectivitySolver<T, DIM>::clear()
 
 template<typename T, int DIM>
 void
-MeshInjectivitySolver<T, DIM>::add_pins(const int* pinned_vertex_inds, int num_pinned_vertices)
+InjectiveMapFixer<T, DIM>::add_pins(const int* pinned_vertex_inds, int num_pinned_vertices)
 {
     for (int i = 0; i < num_pinned_vertices; ++i) {
         pinned_vertices.emplace(pinned_vertex_inds[i]);
@@ -104,11 +106,11 @@ MeshInjectivitySolver<T, DIM>::add_pins(const int* pinned_vertex_inds, int num_p
 
 template<typename T, int DIM>
 int
-MeshInjectivitySolver<T, DIM>::solve(T* x,
-                                     const T* x_rest, // may be null if rest unavailable
-                                     int num_vertices,
-                                     const int* primitives,
-                                     int num_primitives)
+InjectiveMapFixer<T, DIM>::solve(T* x,
+                                 const T* x_rest, // may be null if rest unavailable
+                                 int num_vertices,
+                                 const int* primitives,
+                                 int num_primitives)
 {
     // Initial gather of constraints, one zone per constraint
     add_inversions(x, x_rest, primitives, num_primitives);
@@ -121,6 +123,11 @@ MeshInjectivitySolver<T, DIM>::solve(T* x,
         needs_merge = false;
         ConstraintZone::merge_zones(num_vertices, zones);
     }
+
+    Eigen::VectorX<T> evals;
+    int last_num_violations = 0;
+    int stagnant_iterations = 0;
+    constexpr T tiny_scalar = std::numeric_limits<T>::epsilon();
 
     // Solver loop
     int iter = 0;
@@ -136,11 +143,28 @@ MeshInjectivitySolver<T, DIM>::solve(T* x,
 
         // Check for new constraints
         add_inversions(x, x_rest, primitives, num_primitives);
-
-        // Check for termination
-        if (check_termination(x)) {
+        if (volume_constraints.empty()) {
             break;
         }
+
+        // Check evaluations
+        // In some follow up work (https://hdl.handle.net/11299/226948 Chapter 5)
+        // we found that tiny tets may cause the solver to stall. Increasing the
+        // target volume is enough to drive the solver to resolution.
+        bool increase_target = stagnant_iterations >= 5;
+        constraint_evals(x, evals, options.exit_on_injectivity, increase_target);
+        int num_violation = (evals.array() < tiny_scalar).count();
+        if (num_violation == 0) {
+            break;
+        }
+
+        // Stagnation
+        if (num_violation == last_num_violations) {
+            ++stagnant_iterations;
+        } else {
+            stagnant_iterations = std::max(0, stagnant_iterations - 1);
+        }
+        last_num_violations = num_violation;
 
         // Combine new constraints into new zones
         if (needs_merge) {
@@ -154,7 +178,7 @@ MeshInjectivitySolver<T, DIM>::solve(T* x,
 
 template<typename T, int DIM>
 bool
-MeshInjectivitySolver<T, DIM>::has_free_vertex(const Eigen::Vector<int, DIM + 1>& stencil)
+InjectiveMapFixer<T, DIM>::has_free_vertex(const Eigen::Vector<int, DIM + 1>& stencil)
 {
     for (int i = 0; i < DIM + 1; ++i) {
         if (!is_fixed_vertex(stencil[i])) {
@@ -166,9 +190,9 @@ MeshInjectivitySolver<T, DIM>::has_free_vertex(const Eigen::Vector<int, DIM + 1>
 
 template<typename T, int DIM>
 void
-MeshInjectivitySolver<T, DIM>::add_inversions(const T* x, const T* x_rest, const int* primitives, int num_primitives)
+InjectiveMapFixer<T, DIM>::add_inversions(const T* x, const T* x_rest, const int* primitives, int num_primitives)
 {
-    T threshold = T(1e-8); // target_eval?
+    constexpr T threshold = std::numeric_limits<T>::epsilon();
     volume_constraints.reserve(num_primitives / 4);
     primitives_in_set.reserve(num_primitives / 4);
     zones.reserve(num_primitives / 4);
@@ -188,7 +212,7 @@ MeshInjectivitySolver<T, DIM>::add_inversions(const T* x, const T* x_rest, const
         auto verts = get_verts<T, DIM, DIM + 1>(x, stencil.data());
         int constraint_index = volume_constraints.size();
         if constexpr (DIM == 2) {
-            if (signed_triangle_area(verts[0], verts[1], verts[2]) <= threshold) {
+            if (signed_triangle_area(verts[0], verts[1], verts[2]) < threshold) {
                 needs_merge = true;
                 volume_constraints.emplace_back(x_rest == nullptr ? x : x_rest, stencil, -1);
                 primitives_in_set.emplace(i);
@@ -196,7 +220,7 @@ MeshInjectivitySolver<T, DIM>::add_inversions(const T* x, const T* x_rest, const
                 zones.back().shared_data = std::make_shared<LMZoneData>();
             }
         } else if constexpr (DIM == 3) {
-            if (signed_tet_volume(verts[0], verts[1], verts[2], verts[3]) <= threshold) {
+            if (signed_tet_volume(verts[0], verts[1], verts[2], verts[3]) < threshold) {
                 needs_merge = true;
                 volume_constraints.emplace_back(x_rest == nullptr ? x : x_rest, stencil, -1);
                 primitives_in_set.emplace(i);
@@ -209,14 +233,14 @@ MeshInjectivitySolver<T, DIM>::add_inversions(const T* x, const T* x_rest, const
 
 template<typename T, int DIM>
 void
-MeshInjectivitySolver<T, DIM>::iterate_zone(ConstraintZone& zone, T* global_x)
+InjectiveMapFixer<T, DIM>::iterate_zone(ConstraintZone& zone, T* global_x)
 {
     using VectorType = Eigen::VectorX<T>;
     using MatrixType = Eigen::SparseMatrix<T>;
 
     // Set the LM damping parameter which is stored with the zone.
     LevenbergMarquardt<VectorType, MatrixType> LM;
-    LMZoneData *zone_data = dynamic_cast<LMZoneData*>(zone.shared_data.get());
+    LMZoneData* zone_data = dynamic_cast<LMZoneData*>(zone.shared_data.get());
     LM.options.lm_param = zone_data->lm_param;
 
     // Reuse J_triplets/r_values buffer to avoid repeated allocation
@@ -318,20 +342,31 @@ MeshInjectivitySolver<T, DIM>::iterate_zone(ConstraintZone& zone, T* global_x)
         }
     }
 }
+
 template<typename T, int DIM>
-bool
-MeshInjectivitySolver<T, DIM>::check_termination(const T* global_x)
+void
+InjectiveMapFixer<T, DIM>::constraint_evals(const T* global_x,
+                                            Eigen::VectorX<T>& evals,
+                                            bool exclude_target,
+                                            bool increase_target)
 {
-    for (auto& c : volume_constraints) {
-        T target_volume = options.exit_on_injectivity ? std::numeric_limits<T>::epsilon() : c.target_eval();
+    evals.resize(volume_constraints.size());
+    if (volume_constraints.empty()) {
+        return;
+    }
+
+    size_t num_cons = volume_constraints.size();
+    for (size_t i = 0; i < num_cons; ++i) {
+        auto& c = volume_constraints[i];
         const auto verts = get_verts<T, DIM, DIM + 1>(global_x, c.stencil.data());
-        if (c.eval(verts) < target_volume) {
-            return false;
+        T target_volume = exclude_target ? T(0) : c.target_eval();
+        evals[i] = c.eval(verts) - target_volume;
+        if (increase_target && evals[i] < 0) {
+            c.target_volume *= T(1.05);
         }
     }
-    return true;
 }
 
 } // end ns mcl
 
-#endif // MCL_GEOM_MESH_INJECTIVITY_SOLVER_HPP
+#endif // MCL_GEOM_INJECTIVE_MAP_FIXER_HPP

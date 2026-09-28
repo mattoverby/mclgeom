@@ -34,8 +34,8 @@ class LevenbergMarquardt
   public:
     struct Options
     {
-        T lm_param = T(1e-4);     ///< diagonal regularizer, adjusted in iterate(x)
-        T min_lm_param = T(1e-8); ///< if nonnegative, enables adaptive LM
+        T lm_param = T(1e-3);     ///< diagonal regularizer, adjusted in iterate(x)
+        T min_lm_param = T(1e-4); ///< if nonnegative, enables adaptive LM
         int max_ls_iters = 1000;  ///< linesearch iterations; if meets, exits with error
     } options;
 
@@ -58,12 +58,9 @@ class LevenbergMarquardt
 
     /// @brief Performs an LM iteration of f(x), f : R^n -> R^m
     /// Returns the objective (1/2)||f(x)||^2 and updates x, or -1 if there was an error.
+    /// Additionally, options.lm_param is updated on a successful iteration.
     T iterate(VectorType& x)
     {
-        // Derivative function computes Jacobian and active set.
-        // Residal function compute residual FOR ONLY the active set.
-        throw std::runtime_error("TODO: derivative and residual functions");
-
         // Compute resdual and Jacobian.
         J.setZero();
         residual.setZero();

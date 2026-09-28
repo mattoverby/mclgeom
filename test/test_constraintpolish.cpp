@@ -3,7 +3,7 @@
 #include <MCL/AssertHandler.hpp>
 #include <MCL/Centerize.hpp>
 #include <MCL/FacesFromTets.hpp>
-#include <MCL/MeshInjectivitySolver.hpp>
+#include <MCL/InjectiveMapFixer.hpp>
 #include <MCL/MicroTimer.hpp>
 #include <MCL/Normal.hpp>
 #include <MCL/ReadEleNode.hpp>
@@ -20,39 +20,21 @@ typedef Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RowM
 void
 test_constraint_zone();
 
-/// @brief Runs FF data set
+/// @brief Runs FF data set.
 void
-regression_test();
+fixed_surface_mapping();
 
 /// @brief Helper for counting inverted tetrahedra
 int
-count_flipped_tets(const RowMatrixXd& V, const RowMatrixXi& T, const std::unordered_set<int>& pinned_vertices = {})
-{
-    auto has_free_vertex = [&](int i) {
-        for (int j = 0; j < T.cols(); ++j) {
-            if (pinned_vertices.count(T(i, j) == 0)) {
-                return true;
-            }
-        }
-        return false;
-    };
-
-    int inverted_count = 0;
-    for (int i = 0; i < T.rows(); ++i) {
-        if (has_free_vertex(i)) {
-            auto stencil = mcl::get_primitive<4>(i, T.data());
-            auto v = mcl::get_verts<double, 3, 4>(V.data(), stencil.data());
-            if (mcl::signed_tet_volume(v[0], v[1], v[2], v[3]) <= 0) {
-                ++inverted_count;
-            }
-        }
-    }
-    return inverted_count;
-}
+count_flipped_tets(const RowMatrixXd& V, const RowMatrixXi& T, const std::unordered_set<int>& pinned_vertices = {});
 
 int
 main(int argc, char* argv[])
 {
+    // Benchmarks for the GINI solver:
+    // Computes foldover-free maps for mesh parameterization and deformation.
+    // See Overby et al. 2021 (https://doi.org/10.1111/cgf.14361) for details.
+
     using namespace Eigen;
     (void)(argc);
     (void)(argv);
@@ -88,7 +70,7 @@ main(int argc, char* argv[])
     }
 
     // Solve inversions
-    mcl::MeshInjectivitySolver<double, 3> solver;
+    mcl::InjectiveMapFixer<double, 3> solver;
     int flipped_before = count_flipped_tets(V, T);
     std::cout << "flipped before solve: " << flipped_before << std::endl;
     int iters = solver.solve(V.data(), V0.data(), V.rows(), T.data(), T.rows());
@@ -98,7 +80,7 @@ main(int argc, char* argv[])
     std::cout << "flipped after solve: " << flipped_tets << std::endl;
     mclAssert(flipped_tets == 0);
 
-    regression_test();
+    fixed_surface_mapping();
 
     return EXIT_SUCCESS;
 }
@@ -149,8 +131,33 @@ test_constraint_zone()
     mclAssert(detached_found);
 }
 
+int
+count_flipped_tets(const RowMatrixXd& V, const RowMatrixXi& T, const std::unordered_set<int>& pinned_vertices)
+{
+    auto has_free_vertex = [&](int i) {
+        for (int j = 0; j < T.cols(); ++j) {
+            if (pinned_vertices.count(T(i, j) == 0)) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    int inverted_count = 0;
+    for (int i = 0; i < T.rows(); ++i) {
+        if (has_free_vertex(i)) {
+            auto stencil = mcl::get_primitive<4>(i, T.data());
+            auto v = mcl::get_verts<double, 3, 4>(V.data(), stencil.data());
+            if (mcl::signed_tet_volume(v[0], v[1], v[2], v[3]) <= 0) {
+                ++inverted_count;
+            }
+        }
+    }
+    return inverted_count;
+}
+
 void
-regression_test()
+fixed_surface_mapping()
 {
     // From: https://github.com/mattoverby/mesh-data
     std::vector<std::string> surface = {
@@ -163,12 +170,12 @@ regression_test()
 
     const std::string ff_dir = MCLGEOM_ROOT_DIR "/test/mesh-data/fixedboundary/FF/3D/";
 
-    // Check for directory:
-    // https://github.com/mattoverby/mesh-data
-    // Cloned to test/
+    // Check for directory, cloned to test/
     if (!std::filesystem::is_directory(ff_dir)) {
         return;
     }
+
+    int fail_count = 0;
 
     for (size_t i = 0; i < surface.size(); ++i) {
         std::string full_filename = ff_dir + "surface/" + surface[i] + "/" + surface[i] + ".vtk";
@@ -241,7 +248,7 @@ regression_test()
 
             int flipped_tets_init = count_flipped_tets(laplace, T, surface_vertices);
             std::cout << "\tinit flipped tets: " << flipped_tets_init << std::endl;
-            mcl::MeshInjectivitySolver<double, 3> solver;
+            mcl::InjectiveMapFixer<double, 3> solver;
             solver.add_pins(pin_inds.data(), pin_inds.size());
             mcl::MicroTimer t;
             int iters = solver.solve(laplace.data(), V0.data(), V0.rows(), T.data(), T.rows());
@@ -254,14 +261,14 @@ regression_test()
         }
 
         // onepoint
-        // TODO: Requires special handling (currently, tet volume gradients are zero for collapsed tets!)
-        // will need to jitter or explicitly handle that somehow.
+        // Skipping for now. Deliberately degenerate and impractical.
+        // Works in the original GINI implementation but required some special handling (see paper).
         if (false) {
             std::cout << "\trunning onepoint initializer " << std::endl;
 
             int flipped_tets_init = count_flipped_tets(onepoint, T, surface_vertices);
             std::cout << "\t\tinit flipped tets: " << flipped_tets_init << std::endl;
-            mcl::MeshInjectivitySolver<double, 3> solver;
+            mcl::InjectiveMapFixer<double, 3> solver;
             solver.add_pins(pin_inds.data(), pin_inds.size());
             mcl::MicroTimer t;
             int iters = solver.solve(onepoint.data(), V0.data(), V0.rows(), T.data(), T.rows());
@@ -269,6 +276,9 @@ regression_test()
             mclAssert(iters >= 0);
             int flipped_tets_solved = count_flipped_tets(onepoint, T, surface_vertices);
             std::cout << "\t\tfinal flipped tets: " << flipped_tets_solved << " in " << ms << "ms" << std::endl;
+            if (flipped_tets_solved > 0) {
+                ++fail_count;
+            }
         }
 
         // random
@@ -277,7 +287,7 @@ regression_test()
 
             int flipped_tets_init = count_flipped_tets(random, T, surface_vertices);
             std::cout << "\t\tinit flipped tets: " << flipped_tets_init << std::endl;
-            mcl::MeshInjectivitySolver<double, 3> solver;
+            mcl::InjectiveMapFixer<double, 3> solver;
             solver.add_pins(pin_inds.data(), pin_inds.size());
             mcl::MicroTimer t;
             int iters = solver.solve(random.data(), V0.data(), V0.rows(), T.data(), T.rows());
@@ -286,7 +296,11 @@ regression_test()
             int flipped_tets_solved = count_flipped_tets(random, T, surface_vertices);
             std::cout << "\t\tfinal flipped tets: " << flipped_tets_solved << " in " << iters << " iters, " << ms
                       << "ms" << std::endl;
-            // mclAssert(flipped_tets_solved == 0);
+            mclAssert(flipped_tets_solved == 0);
         }
+    }
+
+    if (fail_count > 0) {
+        std::cout << "fail count: " << fail_count << std::endl;
     }
 }

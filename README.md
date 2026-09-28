@@ -1,7 +1,7 @@
 # mclgeom
 
 Header-only functions and tools for nonlinear optimization, physics-based animation, and general mesh processing.
-Most of this code was implemented throughout my PhD research, so please use the citations within the file if used. Documentation and unit testing is a WIP.
+Most of this code was implemented throughout my PhD research, so please use the citations within the file if used. Documentation and unit testing is a work in progress.
 
 By Matt Overby ([https://mattoverby.net](https://mattoverby.net))
 
@@ -9,7 +9,7 @@ By Matt Overby ([https://mattoverby.net](https://mattoverby.net))
 
 ![Tests](https://github.com/mattoverby/mclgeom/actions/workflows/build_and_test.yml/badge.svg)
 
-Files are implemented with minimal dependencies and can simply be dropped into your own projects. Many of the components use the following dependencies:
+Files are implemented with minimal dependencies. Several components use the following dependencies:
 - Eigen ([https://gitlab.com/libeigen/eigen](https://gitlab.com/libeigen/eigen))
 - Thread Building Blocks ([https://github.com/uxlfoundation/oneTBB](https://github.com/uxlfoundation/oneTBB))
 
@@ -84,14 +84,18 @@ int iters = mcgs.solve(A, B, X, colors);
 
 ### Levenberg-Marquardt
 
-Damped least-squares solver for underdetermined systems `min (1/2)||f(x)||^2`. Suitable for over-determined residual problems. It is *kind of* Levenberg-Marquardt, see [Overby et al. 2021](https://mattoverby.net/pages/gini_abstract.html) for full details.
+Damped least-squares solver for residual objectives, e.g., `min (1/2)||f(x)||^2`. It is *kind of* Levenberg-Marquardt, see [Overby et al. 2021](https://mattoverby.net/pages/gini_abstract.html) for full details.
 
 ```cpp
+// TOne function is required to compute the residual and/or Jacobian:
 mcl::LevenbergMarquardt<VectorXd, SparseMatrixXd> lm;
-lm.objective = [&](const VectorXd& x, VectorXd& residual, SparseMatrixXd& J, bool need_J) {
-    // compute residual and optionally Jacobian J
+lm.derivative = [&](const VectorXd& x, VectorXd& r, SparseMatrixXd& J, bool needs_jacobian) {
+    r = my_residual_calculation(x);
+    if (needs_jacobian) {
+        J = my_jacobian_calculation(x, r, J);
+    }
 };
-double result = lm.iterate(x);
+double result = lm.iterate(x); // -1 if error
 ```
 
 ## Physics-Based Animation
@@ -112,21 +116,25 @@ Model::hessian(lame, S, H);
 
 ### Bending Models
 
-Cloth and surface bending energies. Includes "A Quadratic Bending Model for Inextensible Surfaces", Bergou et al. and "Simple Linear Bending Stiffness in Particle Systems", by Volino and Magnenat-Thalmann.
+Cloth and surface bending energies. Includes the [quadratic model by Bergou et al.](https://doi.org/10.1145/1281957.1281987) and the [linear model by Volino and Magnenat-Thalmann](https://doi.org/10.1145/1218064.1218078).
 
 ```cpp
 mcl::make_hinges(F, H); // Extract hinge edges (4-tuples of shared triangles) from a triangle mesh
-auto Q = mcl::quadratic_bend_Q(x0, x1, x2, x3);
-auto alpha = mcl::linear_bend_alpha(x0, x1, x2, x3);
+for (int i = 0; i < H.rows(); ++i) {
+    auto x0 = X.row(H(i,0));
+    auto x1 = "..."
+    auto Q = mcl::quadratic_bend_Q(x0, x1, x2, x3); // quadratic matrix
+    auto alpha = mcl::linear_bend_alpha(x0, x1, x2, x3); // linear coeffs
+}
 ```
 
 ### Globally Injective Mappings
 
-The standalone "constraint polisher" from [Overby et al. 2021](https://mattoverby.net/pages/gini_abstract.html) can be used to solve global injectivity constraints for mesh parameterization and deformation. Namely, it rapidly and robustly uninverts tets and resolves collisions in a tetrahedral mesh with minimal delta.
+The standalone "constraint polisher" from [Overby et al. 2021](https://mattoverby.net/pages/gini_abstract.html) can be used for "map-fixing", i.e., solve global injectivity constraints common to mesh parameterization and deformation. Namely, it rapidly and robustly uninverts tets and resolves collisions (WIP) in a tetrahedral mesh with minimal delta.
 
 ```cpp
 Matrix<double, Dynamic, Dynamic, RowMajor> V = /*has inverted tets*/, V_rest = /*...*/;
-mcl::InjectiveConstraintSolver<double, 3> solver;
+mcl::InjectiveMapFixer<double, 3> solver;
 int iters = solver.solve(V.data(), V0.data(), V.rows(), tets.data(), tets.rows());
 ```
 
