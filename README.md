@@ -116,7 +116,7 @@ Model::hessian(lame, S, H);
 
 ### Bending Models
 
-Cloth and surface bending energies. Includes the [quadratic model by Bergou et al.](https://doi.org/10.1145/1281957.1281987) and the [linear model by Volino and Magnenat-Thalmann](https://doi.org/10.1145/1218064.1218078).
+Cloth and surface bending energies. Includes the [quadratic model by Bergou et al.](https://doi.org/10.1145/1281957.1281987) and the [linear model by Volino and Magnenat-Thalmann](https://doi.org/10.1145/1218064.1218078). Note the latter uses a different signature to be consistent with the paper.
 
 ```cpp
 mcl::make_hinges(F, H); // Extract hinge edges (4-tuples of shared triangles) from a triangle mesh
@@ -124,7 +124,7 @@ for (int i = 0; i < H.rows(); ++i) {
     auto x0 = X.row(H(i,0));
     auto x1 = "..."
     auto Q = mcl::quadratic_bend_Q(x0, x1, x2, x3); // quadratic matrix
-    auto alpha = mcl::linear_bend_alpha(x0, x1, x2, x3); // linear coeffs
+    auto alpha = mcl::linear_bend_alpha(x3, x2, x1, x0); // linear coeffs
 }
 ```
 

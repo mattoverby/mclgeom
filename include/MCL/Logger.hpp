@@ -2,9 +2,10 @@
 // Distributed under the MIT License.
 
 #ifndef MCL_LOGGER_HPP
-#define MCL_LOGGER_HPP 1
+#define MCL_LOGGER_HPP
 
-#include "MCL/MicroTimer.hpp"
+#include "MicroTimer.hpp"
+
 #include <fstream>
 #include <iomanip>
 #include <mutex>
