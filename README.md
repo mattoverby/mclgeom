@@ -43,7 +43,7 @@ double result = solver.minimize(x);
 
 // Linesearch is the function responsible for updating the solver variable,
 // and weak Wolf bisection is used by default. Custom functions can be used, e.g.,
-solver.linesearch = [&](MatrixXd& x, MatrixXd& g, MatrixXd &p, double& alpha) -> double {
+solver.linesearch = [&](MatrixXd& x, MatrixXd&, const MatrixXd &p, double& alpha) -> double {
     MatrixXd x0 = x;
     x = x0 + p * alpha;
     double obj0 = compute_objective(x0);
@@ -87,7 +87,7 @@ int iters = mcgs.solve(A, B, X, colors);
 Damped least-squares solver for residual objectives, e.g., `min (1/2)||f(x)||^2`. It is *kind of* Levenberg-Marquardt, see [Overby et al. 2021](https://mattoverby.net/pages/gini_abstract.html) for full details.
 
 ```cpp
-// TOne function is required to compute the residual and/or Jacobian:
+// One function is required to compute the residual and/or Jacobian:
 mcl::LevenbergMarquardt<VectorXd, SparseMatrixXd> lm;
 lm.derivative = [&](const VectorXd& x, VectorXd& r, SparseMatrixXd& J, bool needs_jacobian) {
     r = my_residual_calculation(x);
@@ -102,12 +102,12 @@ double result = lm.iterate(x); // -1 if error
 
 ### Energy Models
 
-Nonlinear material energy densities for deformable bodies. Includes neo-Hookean, St. Venant-Kirchhoff, ARAP, symmetric Dirichlet, and the spline model by [Xu et al 2015](https://doi.org/10.1145/2766917). See the [admm-pd](https://github.com/mattoverby/admm-elastic) source code for an example of how they are used.
+Nonlinear material energy densities for principle stretch. Includes neo-Hookean, symmetric Dirichlet, a variant of [Stable neo-Hookean by Smith et al. 2018](https://doi.org/10.1145/31804), and the [spline model by Xu et al. 2015](https://doi.org/10.1145/2766917) including several mapped presets (St. Venant-Kirchhoff, Co-rotational, and neo-Hookean). See [test_lbfgs](test/test_lbfgs.cpp) for an example.
 
 ```cpp
 mcl::Lame<double> lame = mcl::Lame<double>::soft_rubber();
 mcl::signed_svd(F, S, U, V);
-using Model = mcl::StableNeoHookean<3, double>;
+using Model = mcl::StableNeoHookean<double, 3>;
 double psi = Model::energy_density(lame, S);
 // Hessian of psi with respect to principal stretches:
 Matrix3d H;

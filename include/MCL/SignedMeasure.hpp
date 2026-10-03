@@ -34,21 +34,7 @@ inline Eigen::Matrix<T, 3, 4>
 tet_reduction_matrix(const Eigen::Vector3<T>& p1,
                      const Eigen::Vector3<T>& p2,
                      const Eigen::Vector3<T>& p3,
-                     const Eigen::Vector3<T>& p4)
-{
-    Eigen::Matrix3<T> edges;
-    edges.col(0) = p2 - p1;
-    edges.col(1) = p3 - p1;
-    edges.col(2) = p4 - p1;
-    Eigen::Matrix3<T> rest = edges.inverse();
-    Eigen::Matrix<T, 4, 3> S = Eigen::Matrix<T, 4, 3>::Zero();
-    S.row(0).array() = -1;
-    S(1, 0) = 1;
-    S(2, 1) = 1;
-    S(3, 2) = 1;
-    Eigen::Matrix<T, 3, 4> D = (S * rest).transpose();
-    return D;
-}
+                     const Eigen::Vector3<T>& p4);
 
 /// @brief Returns signed volume of the tet
 template<typename T>
@@ -89,6 +75,12 @@ template<int PDIM>
 inline Eigen::Vector<int, PDIM>
 get_primitive(int prim_index, const int* primitives);
 
+/// @brief Returns the max step until an inversion, V += alpha * P
+/// for elements DIM+1 (i.e., V in R^2 are triangles, V in R^3 are tets).
+template<typename T, int DIM>
+T
+max_injective_step(const T* V, const T* P, const int* primitives, int num_primitives, const T& alpha0 = T(1));
+
 //
 // Implementation
 //
@@ -128,6 +120,27 @@ triangle_area(const Eigen::Vector3<T>& p1, const Eigen::Vector3<T>& p2, const Ei
     T c = (p3 - p1).norm();
     T s = (a + b + c) * 0.5;
     return std::sqrt(s * (s - a) * (s - b) * (s - c));
+}
+
+template<typename T>
+Eigen::Matrix<T, 3, 4>
+tet_reduction_matrix(const Eigen::Vector3<T>& p1,
+                     const Eigen::Vector3<T>& p2,
+                     const Eigen::Vector3<T>& p3,
+                     const Eigen::Vector3<T>& p4)
+{
+    Eigen::Matrix3<T> edges;
+    edges.col(0) = p2 - p1;
+    edges.col(1) = p3 - p1;
+    edges.col(2) = p4 - p1;
+    Eigen::Matrix3<T> rest = edges.inverse();
+    Eigen::Matrix<T, 4, 3> S = Eigen::Matrix<T, 4, 3>::Zero();
+    S.row(0).array() = -1;
+    S(1, 0) = 1;
+    S(2, 1) = 1;
+    S(3, 2) = 1;
+    Eigen::Matrix<T, 3, 4> D = (S * rest).transpose();
+    return D;
 }
 
 template<typename T>
@@ -203,6 +216,40 @@ Eigen::Vector<int, PDIM>
 get_primitive(int prim_index, const int* primitives)
 {
     return Eigen::Map<const Eigen::Vector<int, PDIM>>(primitives + prim_index * PDIM).eval();
+}
+
+template<typename T, int DIM>
+T
+max_injective_step(const T* V, const T* P, const int* primitives, int num_primitives, const T& alpha0)
+{
+    T alpha = alpha0;
+    T decay = T(0.5);
+    constexpr T min_measure = std::numeric_limits<T>::epsilon();
+    while (alpha > T(1e-12)) {
+        bool has_flip = false;
+        for (int i = 0; i < num_primitives; ++i) {
+            auto prim = get_primitive<DIM + 1>(i, primitives);
+            auto x = get_verts<T, DIM, DIM + 1>(V, prim.data());
+            bool has_flip = false;
+            if constexpr (DIM == 2) {
+                if (signed_triangle_area(x[0], x[1], x[2]) < min_measure) {
+                    has_flip = true;
+                    break;
+                }
+            } else if constexpr (DIM == 3) {
+                if (signed_tet_volume(x[0], x[1], x[2], x[3]) < min_measure) {
+                    has_flip = true;
+                    break;
+                }
+            }
+        }
+
+        if (!has_flip) {
+            break;
+        }
+        alpha *= decay;
+    }
+    return alpha;
 }
 
 } // ns mcl

@@ -80,7 +80,7 @@ main(int argc, char* argv[])
     std::cout << "flipped after solve: " << flipped_tets << std::endl;
     mclAssert(flipped_tets == 0);
 
-    fixed_surface_mapping();
+    // fixed_surface_mapping();
 
     return EXIT_SUCCESS;
 }
