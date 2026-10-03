@@ -181,9 +181,12 @@ LBFGS<MatrixType>::minimize(MatrixType& x)
         return obj_k;
     }
 
-    for (; k < max_iters; ++k) {
+    while (num_iters < max_iters) {
         iterate(x);
-    } // end loop lbfgs iters
+        if (num_iters >= options.min_iters && converged(obj_k, x_last, x, grad)) {
+            break;
+        }
+    }
 
     return obj_k;
 
@@ -227,7 +230,7 @@ typename LBFGS<MatrixType>::Scalar
 LBFGS<MatrixType>::iterate(MatrixType& x)
 {
     if (!initialized) {
-        throw std::runtime_error("not initialized");
+        initialize(x);
     }
 
     x_old = x;
@@ -276,7 +279,6 @@ LBFGS<MatrixType>::iterate(MatrixType& x)
         Scalar dir = inner(q, grad);
         if (dir <= 0) {
             q = grad;
-            max_iters -= k; // Restart memory
             k = 0;
             step_size = std::min(1.0, 1.0 / grad.template lpNorm<Eigen::Infinity>());
         }
@@ -305,6 +307,7 @@ LBFGS<MatrixType>::iterate(MatrixType& x)
         if (k < options.M) {
             s[k] = s_temp;
             y[k] = y_temp;
+            ++k;
         } else {
             for (int i = 0; i < options.M - 1; ++i) {
                 s[i] = s[i + 1];

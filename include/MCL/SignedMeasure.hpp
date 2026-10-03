@@ -28,6 +28,28 @@ template<typename T>
 inline T
 triangle_area(const Eigen::Vector3<T>& p1, const Eigen::Vector3<T>& p2, const Eigen::Vector3<T>& p3);
 
+/// @brief Returns operator that maps to deformation gradient of a tet. I.e., F=D*X.
+template<typename T>
+inline Eigen::Matrix<T, 3, 4>
+tet_reduction_matrix(const Eigen::Vector3<T>& p1,
+                     const Eigen::Vector3<T>& p2,
+                     const Eigen::Vector3<T>& p3,
+                     const Eigen::Vector3<T>& p4)
+{
+    Eigen::Matrix3<T> edges;
+    edges.col(0) = p2 - p1;
+    edges.col(1) = p3 - p1;
+    edges.col(2) = p4 - p1;
+    Eigen::Matrix3<T> rest = edges.inverse();
+    Eigen::Matrix<T, 4, 3> S = Eigen::Matrix<T, 4, 3>::Zero();
+    S.row(0).array() = -1;
+    S(1, 0) = 1;
+    S(2, 1) = 1;
+    S(3, 2) = 1;
+    Eigen::Matrix<T, 3, 4> D = (S * rest).transpose();
+    return D;
+}
+
 /// @brief Returns signed volume of the tet
 template<typename T>
 inline T

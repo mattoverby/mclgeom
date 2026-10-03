@@ -1,6 +1,8 @@
 # Copyright Matt Overby 2021.
 # Distributed under the MIT License.
 
+find_package(TBB REQUIRED)
+
 # Build visual/rendering examples
 if (MCLGEOM_EXAMPLES)
 
@@ -9,14 +11,12 @@ if (MCLGEOM_EXAMPLES)
     igl_include(glfw)
 
     add_executable(test_lbfgs ${CMAKE_CURRENT_SOURCE_DIR}/test_lbfgs.cpp)
-    target_link_libraries(test_lbfgs PUBLIC igl::glfw mcl::geom)
+    target_link_libraries(test_lbfgs PUBLIC igl::glfw mcl::geom TBB::tbb)
 
 endif()
 
 # unit testing
 if (MCLGEOM_UNIT_TESTS)
-
-    find_package(TBB REQUIRED)
 
     add_executable(test_constraintpolish ${CMAKE_CURRENT_SOURCE_DIR}/test_constraintpolish.cpp)
     target_link_libraries(test_constraintpolish PUBLIC mcl::geom TBB::tbb)
